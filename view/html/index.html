@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wallet Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @media (max-width: 768px) {
+            .responsive-grid {
+                grid-template-columns: 1fr;
+            }
+            .responsive-flex {
+                flex-direction: column;
+            }
+            .responsive-flex > * {
+                margin-bottom: 0.5rem;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex-shrink-0 flex items-center">
+                        <i class="fas fa-wallet text-blue-500 text-2xl mr-2"></i>
+                        <span class="text-xl font-bold text-gray-800">Daily Money Tracker</span>
+                    </a>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="/home" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                        <i class="fas fa-home mr-1"></i> Dashboard
+                    </a>
+                    <a href="/wallet" class="px-3 py-2 rounded-md text-sm font-medium text-blue-600 bg-blue-50">
+                        <i class="fas fa-wallet mr-1"></i> Wallets
+                    </a>
+                    <a href="/budget" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                        <i class="fas fa-chart-pie mr-1"></i> Budget
+                    </a>
+                    <a href="/transactions" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                        <i class="fas fa-exchange-alt mr-1"></i> Transactions
+                    </a>
+                    <a href="/goals" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                        <i class="fas fa-bullseye mr-1"></i> Financial Goals
+                    </a>
+                </div>
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-button" class="text-gray-600 hover:text-blue-600 focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="/home" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-home mr-1"></i> Dashboard
+                </a>
+                <a href="/wallet" class="block px-3 py-2 rounded-md text-base font-medium text-blue-600 bg-blue-50">
+                    <i class="fas fa-wallet mr-1"></i> Wallets
+                </a>
+                <a href="/budget" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-chart-pie mr-1"></i> Budget
+                </a>
+                <a href="/transactions" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-exchange-alt mr-1"></i> Transactions
+                </a>
+                <a href="/goals" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-bullseye mr-1"></i> Financial Goals
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex justify-between items-center mb-6 responsive-flex">
+            <h2 class="text-2xl font-bold mb-2 md:mb-0">Wallet Management</h2>
+            <div class="flex space-x-2 responsive-flex">
+                <button onclick="openAddModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md w-full md:w-auto transition-colors">
+                    <i class="fas fa-plus mr-1"></i> Add Wallet
+                </button>
+                <button onclick="openTransferModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md w-full md:w-auto transition-colors">
+                    <i class="fas fa-exchange-alt mr-1"></i> Transfer Money
+                </button>
+            </div>
+        </div>
+
+        <div id="walletTotal" class="space-y-4 mb-6 p-4 bg-gray-50 rounded-lg"></div>
+        <div id="walletList" class="space-y-4 mb-6 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </div>
+
+    <!-- Add Wallet Modal -->
+    <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold mb-4">Add New Wallet</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Wallet Name</label>
+                    <input type="text" id="walletName" placeholder="Enter wallet name"
+                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Initial Balance</label>
+                    <input type="number" id="walletBalance" placeholder="Enter initial balance"
+                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Frozen Amount</label>
+                    <input type="number" id="walletFrozen" placeholder="0"
+                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div class="flex justify-end space-x-2 responsive-flex">
+                    <button onclick="closeAddModal()"
+                        class="px-4 py-2 border rounded-lg hover:bg-gray-100 transition-colors w-full md:w-auto">
+                        Cancel
+                    </button>
+                    <button onclick="addWallet()"
+                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors w-full md:w-auto">
+                        Add Wallet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Wallet Modal -->
+    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold mb-4">Edit Wallet</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Wallet Name</label>
+                    <input type="text" id="editWalletName" placeholder="Wallet Name"
+                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Balance</label>
+                    <input type="number" id="editWalletBalance" placeholder="Balance"
+                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Frozen Amount</label>
+                    <input type="number" id="editWalletFrozen" placeholder="Frozen Amount"
+                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div class="flex justify-end space-x-2 responsive-flex">
+                    <button onclick="closeEditModal()"
+                        class="px-4 py-2 border rounded-lg hover:bg-gray-100 transition-colors w-full md:w-auto">
+                        Cancel
+                    </button>
+                    <button onclick="saveEditWallet()"
+                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors w-full md:w-auto">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold mb-2 text-red-600">Confirm Deletion</h3>
+            <p class="mb-4 text-gray-600">Are you sure you want to delete this wallet? This action cannot be undone.</p>
+            <div class="flex justify-end space-x-2 responsive-flex">
+                <button onclick="closeDeleteModal()"
+                    class="px-4 py-2 border rounded-lg hover:bg-gray-100 transition-colors w-full md:w-auto">
+                    Cancel
+                </button>
+                <button onclick="confirmDeleteWallet()"
+                    class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors w-full md:w-auto">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Money Modal -->
+    <div id="transferModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold mb-4">Transfer Money</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">From Wallet</label>
+                    <select id="fromWallet"
+                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">To Wallet</label>
+                    <select id="toWallet"
+                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                    <input type="number" id="transferAmount" placeholder="Enter amount"
+                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div class="flex justify-end space-x-2 responsive-flex">
+                    <button onclick="closeTransferModal()"
+                        class="px-4 py-2 border rounded-lg hover:bg-gray-100 transition-colors w-full md:w-auto">
+                        Cancel
+                    </button>
+                    <button onclick="transferMoney()"
+                        class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors w-full md:w-auto">
+                        Transfer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin + "/api/wallets";
+        let selectedWalletId = null;
+
+        // Mobile menu toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchWallets();
+            
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+                
+                // Close mobile menu when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!mobileMenuButton.contains(e.target) && !mobileMenu.contains(e.target)) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            }
+        });
+
+        // Fetch and display wallets
+        async function fetchWallets() {
+            const response = await fetch(API_URL);
+            const wallets = await response.json();
+            const walletList = document.getElementById("walletList");
+            const walletTotal = document.getElementById("walletTotal");
+            walletList.innerHTML = "";
+
+            let totalBalance = 0;
+            let totalFrozen = 0;
+            let totalUsable = 0;
+
+            // Add grid container class
+            walletList.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4";
+
+            wallets.forEach((wallet) => {
+                totalBalance += wallet.balance;
+                totalFrozen += wallet.frozen;
+                totalUsable += (wallet.balance - wallet.frozen);
+                walletList.innerHTML += `
+            <div class="bg-white border rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-start responsive-flex">
+                        <h3 class="font-semibold text-xl text-gray-800 mb-2 md:mb-0">${wallet.name}</h3>
+                        <div class="space-x-2">
+                            <button onclick="openEditModal('${wallet.id}', '${wallet.name}', ${wallet.balance}, ${wallet.frozen})" 
+                                class="p-2 text-gray-400 hover:text-blue-500 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button onclick="openDeleteModal('${wallet.id}')" 
+                                class="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 responsive-grid">
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-500">Balance</p>
+                            <p class="text-lg font-semibold text-blue-600">Rp${wallet.balance.toLocaleString("id-ID")}</p>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-500">Frozen</p>
+                            <p class="text-lg font-semibold text-red-600">Rp${wallet.frozen.toLocaleString("id-ID")}</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-500">Usable</p>
+                            <p class="text-lg font-semibold text-green-600">Rp${(wallet.balance - wallet.frozen).toLocaleString("id-ID")}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+            });
+
+            walletTotal.innerHTML += `
+                <div class="bg-white border rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-semibold text-xl text-gray-800">Akumulasi Semua</h3>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-500">Balance</p>
+                            <p class="text-lg font-semibold text-blue-600">Rp${totalBalance.toLocaleString("id-ID")}</p>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-500">Frozen</p>
+                            <p class="text-lg font-semibold text-red-600">Rp${totalFrozen.toLocaleString("id-ID")}</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-500">Usable</p>
+                            <p class="text-lg font-semibold text-green-600">Rp${totalUsable.toLocaleString("id-ID")}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+
+            populateWalletDropdowns(wallets);
+        }
+
+        // Modal functions
+        function openAddModal() {
+            document.getElementById('addModal').style.display = 'flex';
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+            document.getElementById('walletName').value = '';
+            document.getElementById('walletBalance').value = '';
+        }
+
+        function openEditModal(id, name, balance, frozen) {
+            selectedWalletId = id;
+            document.getElementById('editWalletName').value = name;
+            document.getElementById('editWalletBalance').value = balance;
+            document.getElementById('editWalletFrozen').value = frozen;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            selectedWalletId = null;
+        }
+
+        function openDeleteModal(id) {
+            selectedWalletId = id;
+            document.getElementById('deleteModal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            selectedWalletId = null;
+        }
+
+        function openTransferModal() {
+            document.getElementById('transferModal').style.display = 'flex';
+        }
+
+        function closeTransferModal() {
+            document.getElementById('transferModal').style.display = 'none';
+            document.getElementById('transferAmount').value = '';
+        }
+
+        // Wallet operations
+        async function addWallet() {
+            const name = document.getElementById("walletName").value;
+            const balance = parseFloat(document.getElementById("walletBalance").value);
+
+            if (!name || isNaN(balance)) {
+                alert('Please fill in all fields correctly');
+                return;
+            }
+
+            await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, balance }),
+            });
+
+            closeAddModal();
+            fetchWallets();
+        }
+
+        async function saveEditWallet() {
+            const name = document.getElementById("editWalletName").value;
+            const balance = parseFloat(document.getElementById("editWalletBalance").value);
+            const frozen = parseFloat(document.getElementById("editWalletFrozen").value);
+
+            if (!name || isNaN(balance) || isNaN(frozen)) {
+                alert('Please fill in all fields correctly');
+                return;
+            }
+
+            await fetch(`${API_URL}/${selectedWalletId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, balance, frozen }),
+            });
+
+            closeEditModal();
+            fetchWallets();
+        }
+
+        async function confirmDeleteWallet() {
+            await fetch(`${API_URL}/${selectedWalletId}`, { method: "DELETE" });
+            closeDeleteModal();
+            fetchWallets();
+        }
+
+        async function transferMoney() {
+            const fromWalletId = document.getElementById("fromWallet").value;
+            const toWalletId = document.getElementById("toWallet").value;
+            const amount = parseFloat(document.getElementById("transferAmount").value);
+
+            if (!fromWalletId || !toWalletId || isNaN(amount)) {
+                alert('Please fill in all fields correctly');
+                return;
+            }
+
+            if (fromWalletId === toWalletId) {
+                alert('Cannot transfer to the same wallet');
+                return;
+            }
+
+            await fetch(`${API_URL}/transfer`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fromWalletId,
+                    toWalletId,
+                    amount
+                }),
+            });
+
+            closeTransferModal();
+            fetchWallets();
+        }
+
+        function populateWalletDropdowns(wallets) {
+            const fromSelect = document.getElementById("fromWallet");
+            const toSelect = document.getElementById("toWallet");
+            fromSelect.innerHTML = toSelect.innerHTML = '<option value="">Select a wallet</option>';
+
+            wallets.forEach((wallet) => {
+                const option = `<option value="${wallet.id}">${wallet.name} ($${wallet.balance})</option>`;
+                fromSelect.innerHTML += option;
+                toSelect.innerHTML += option;
+            });
+        }
+    </script>
+</body>
+
+</html>

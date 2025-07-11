@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @media (max-width: 768px) {
+            .responsive-grid {
+                grid-template-columns: 1fr;
+            }
+            .responsive-flex {
+                flex-direction: column;
+            }
+            .responsive-flex > * {
+                margin-bottom: 0.5rem;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Konfirmasi Hapus</h3>
+            <p class="text-gray-600 mb-8">Apakah Anda yakin ingin menghapus anggaran ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="flex justify-end space-x-4">
+                <button onclick="closeModal()" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200 font-medium">
+                    Batal
+                </button>
+                <button id="confirmDeleteBtn" class="px-6 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-200 font-medium">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex-shrink-0 flex items-center">
+                        <i class="fas fa-wallet text-blue-500 text-2xl mr-2"></i>
+                        <span class="text-xl font-bold text-gray-800">Daily Money Tracker</span>
+                    </a>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="/home" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                        <i class="fas fa-home mr-1"></i> Dashboard
+                    </a>
+                    <a href="/wallet" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                        <i class="fas fa-wallet mr-1"></i> Wallets
+                    </a>
+                    <a href="/budget" class="px-3 py-2 rounded-md text-sm font-medium text-blue-600 bg-blue-50">
+                        <i class="fas fa-chart-pie mr-1"></i> Budget
+                    </a>
+                    <a href="/transactions" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                        <i class="fas fa-exchange-alt mr-1"></i> Transactions
+                    </a>
+                    <a href="/goals" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                        <i class="fas fa-bullseye mr-1"></i> Financial Goals
+                    </a>
+                </div>
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-button" class="text-gray-600 hover:text-blue-600 focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="/home" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-home mr-1"></i> Dashboard
+                </a>
+                <a href="/wallet" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-wallet mr-1"></i> Wallets
+                </a>
+                <a href="/budget" class="block px-3 py-2 rounded-md text-base font-medium text-blue-600 bg-blue-50">
+                    <i class="fas fa-chart-pie mr-1"></i> Budget
+                </a>
+                <a href="/transactions" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-exchange-alt mr-1"></i> Transactions
+                </a>
+                <a href="/goals" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-bullseye mr-1"></i> Financial Goals
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-5xl mx-auto p-6">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-lg mb-8 overflow-hidden">
+            <div class="p-8 border-b border-gray-100">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Budget Tracker</h2>
+                <p class="text-gray-500 mb-6">Kelola dan lacak anggaran Anda dengan mudah</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 responsive-grid">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">User ID</label>
+                        <input type="text" id="userId" class="w-full border border-gray-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-gray-50">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Bulan</label>
+                        <input type="month" id="month" class="w-full border border-gray-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-gray-50">
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap gap-4 responsive-flex">
+                    <button onclick="fetchBudget()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-all duration-200 flex items-center font-medium shadow-sm hover:shadow-md w-full md:w-auto justify-center md:justify-start">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Lihat Anggaran
+                    </button>
+                    <button onclick="showBudgetForm()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-all duration-200 flex items-center font-medium shadow-sm hover:shadow-md w-full md:w-auto justify-center md:justify-start">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Tambah Anggaran
+                    </button>
+                    <div class="relative inline-block w-full md:w-auto">
+                        <button id="exportButton" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-all duration-200 flex items-center font-medium shadow-sm hover:shadow-md w-full md:w-auto justify-center md:justify-start">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                            Ekspor Data
+                        </button>
+                        <div id="exportDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10">
+                            <div class="py-1">
+                                <button onclick="exportData('json')" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Ekspor sebagai JSON
+                                </button>
+                                <button onclick="exportData('csv')" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Ekspor sebagai CSV
+                                </button>
+                                <button onclick="exportData('xlsx')" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Ekspor sebagai Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Form -->
+        <div id="budgetForm" class="hidden bg-white rounded-2xl shadow-lg mb-8 overflow-hidden">
+            <div class="p-8">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">Tambah/Edit Anggaran</h3>
+                <div id="categories" class="space-y-6"></div>
+                <div class="mt-6 flex flex-wrap gap-4 responsive-flex">
+                    <button onclick="addCategory()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-all duration-200 font-medium w-full md:w-auto">
+                        Tambah Kategori
+                    </button>
+                    <button onclick="submitBudget()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-all duration-200 font-medium w-full md:w-auto">
+                        Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Output -->
+        <div id="budgetOutput" class="bg-white rounded-2xl shadow-lg overflow-hidden"></div>
+
+        <script>
+            // Mobile menu toggle
+            document.addEventListener('DOMContentLoaded', function() {
+                const mobileMenuButton = document.getElementById('mobile-menu-button');
+                const mobileMenu = document.getElementById('mobile-menu');
+                
+                mobileMenuButton.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+                
+                // Close mobile menu when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (mobileMenuButton && mobileMenu && 
+                        !mobileMenuButton.contains(e.target) && 
+                        !mobileMenu.contains(e.target)) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+                
+                // Export dropdown functionality
+                const exportButton = document.getElementById('exportButton');
+                const exportDropdown = document.getElementById('exportDropdown');
+                
+                if (exportButton && exportDropdown) {
+                    exportButton.addEventListener('click', function() {
+                        exportDropdown.classList.toggle('hidden');
+                    });
+                    
+                    // Close dropdown when clicking outside
+                    document.addEventListener('click', function(e) {
+                        if (!exportButton.contains(e.target) && !exportDropdown.contains(e.target)) {
+                            exportDropdown.classList.add('hidden');
+                        }
+                    });
+                }
+            });
+        </script>
+    </div>
+
+    <script>
+        let currentBudgetIdToDelete = null;
+        let totalBudget = 0;
+
+        function getCurrentMonth() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const userIdInput = document.getElementById('userId');
+            const monthInput = document.getElementById('month');
+            
+            if (!userIdInput.value) {
+                userIdInput.value = "user123";
+            }
+            
+            if (!monthInput.value) {
+                monthInput.value = getCurrentMonth();
+            }
+
+            fetchBudget();
+        });
+
+        function showBudgetForm() {
+            document.getElementById('budgetForm').classList.toggle('hidden');
+            document.getElementById('categories').innerHTML = '';
+        }
+
+        function addCategory(name = '', total = '', subcategories = []) {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.classList.add('border', 'border-gray-200', 'p-6', 'rounded-xl', 'bg-gray-50');
+            categoryDiv.innerHTML = `
+                <div class="space-y-4">
+                    <input type="text" placeholder="Nama Kategori" class="border border-gray-200 p-3 rounded-lg w-full category-name focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" value="${name}">
+                    <input type="number" placeholder="Total" class="border border-gray-200 p-3 rounded-lg w-full category-total focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" value="${total}">
+                    <div class="subcategories space-y-4"></div>
+                    <div class="flex space-x-3">
+                        <button onclick="addSubcategory(this)" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium">
+                            Tambah Subkategori
+                        </button>
+                        <button onclick="this.closest('.border').remove()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium">
+                            Hapus Kategori
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('categories').appendChild(categoryDiv);
+            
+            const subcategoryContainer = categoryDiv.querySelector('.subcategories');
+            subcategories.forEach(sub => {
+                addSubcategory(subcategoryContainer, sub.name, sub.amount, sub.used || 0);
+            });
+        }
+
+        function addSubcategory(parentElement, name = '', amount = '', used = 0) {
+            let subcategoryContainer;
+            if (parentElement instanceof HTMLElement && parentElement.tagName === 'BUTTON') {
+                const categoryDiv = parentElement.closest('.border');
+                subcategoryContainer = categoryDiv.querySelector('.subcategories');
+            } else {
+                subcategoryContainer = parentElement;
+            }
+
+            const subcategoryDiv = document.createElement('div');
+            subcategoryDiv.classList.add('bg-white', 'p-4', 'rounded-lg', 'border', 'border-gray-200', 'shadow-sm');
+            subcategoryDiv.innerHTML = `
+                <div class="space-y-3">
+                    <input type="text" placeholder="Nama Subkategori" class="border border-gray-200 p-3 rounded-lg w-full sub-name focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value="${name}">
+                    <input type="number" placeholder="Jumlah" class="border border-gray-200 p-3 rounded-lg w-full sub-amount focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value="${amount}">
+                    <input type="hidden" class="sub-used" value="${used}">
+                    <div class="text-xs text-gray-500 mb-2">Terpakai: Rp${used.toLocaleString()}</div>
+                    <button onclick="this.closest('.bg-white').remove()" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium">
+                        Hapus
+                    </button>
+                </div>
+            `;
+            
+            subcategoryContainer.appendChild(subcategoryDiv);
+        }
+
+        async function submitBudget() {
+            const userId = document.getElementById('userId').value;
+            const month = document.getElementById('month').value;
+            if (!userId || !month) {
+                alert('Masukkan User ID dan Bulan!');
+                return;
+            }
+
+            const categories = [];
+            document.querySelectorAll('.category-name').forEach((categoryInput, index) => {
+                const categoryTotal = document.querySelectorAll('.category-total')[index].value;
+                const subcategories = [];
+                categoryInput.parentElement.querySelectorAll('.sub-name').forEach((subInput, subIndex) => {
+                    const subUsed = subInput.parentElement.querySelector('.sub-used');
+                    subcategories.push({
+                        name: subInput.value,
+                        amount: parseInt(subInput.parentElement.querySelector('.sub-amount').value) || 0,
+                        used: parseInt(subUsed ? subUsed.value : 0) || 0
+                    });
+                });
+                categories.push({
+                    name: categoryInput.value,
+                    total: parseInt(categoryTotal) || 0,
+                    subcategories
+                });
+            });
+
+            const budgetData = { userId, month, categories };
+            const response = await fetch('http://localhost:5000/api/budgeting', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(budgetData)
+            });
+            alert('Anggaran berhasil disimpan');
+            fetchBudget();
+        }
+
+        async function fetchUsableMoney() {
+            try {
+                const response = await fetch('http://localhost:5000/api/analytics/wallets/user123');
+                const data = await response.json();
+                const totalUsable = data.reduce((sum, wallet) => sum + wallet.usable, 0);
+                
+                // Mendapatkan sisa anggaran dari elemen yang sudah ada
+                let remainingBudget = totalBudget;
+                const remainingElement = document.querySelector('.text-green-600.font-medium .font-bold');
+                if (remainingElement) {
+                    // Ekstrak nilai dari teks seperti "Rp1,000,000"
+                    const remainingText = remainingElement.textContent.trim();
+                    const remainingValue = parseInt(remainingText.replace(/[^0-9]/g, ''));
+                    if (!isNaN(remainingValue)) {
+                        remainingBudget = remainingValue;
+                    }
+                }
+                
+                // Menghitung total uang usable - sisa anggaran
+                const result = totalUsable - remainingBudget;
+                
+                usableMinBudget = `
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                        <p class="text-blue-800 font-medium">
+                            Sisa uang setelah anggaran: 
+                            <span class="font-bold">Rp${result.toLocaleString()}</span>
+                            <span class="text-sm text-blue-600">
+                                (Total: Rp${totalUsable.toLocaleString()} - Sisa Anggaran: Rp${remainingBudget.toLocaleString()})
+                            </span>
+                        </p>
+                    </div>
+                `;
+                document.getElementById('usableMinBudget').innerHTML = usableMinBudget;
+            } catch (error) {
+                console.error('Error fetching usable money:', error);
+            }
+        }
+
+        async function fetchBudget() {
+            const userId = document.getElementById('userId').value;
+            const month = document.getElementById('month').value;
+            if (!userId || !month) {
+                alert('Masukkan User ID dan Bulan!');
+                return;
+            }
+            
+            const response = await fetch(`http://localhost:5000/api/budgeting/${userId}/${month}`);
+            const data = await response.json();
+            
+            if (response.status === 404) {
+                document.getElementById('budgetOutput').innerHTML = `
+                    <div class="p-8 text-center">
+                        <p class="text-gray-500">Data tidak ditemukan</p>
+                    </div>
+                `;
+            } else {
+                displayBudget(data);
+            }
+        }
+
+        function showDeleteConfirmation(id) {
+            currentBudgetIdToDelete = id;
+            document.getElementById('confirmModal').classList.remove('hidden');
+            document.getElementById('confirmModal').classList.add('flex');
+            
+            document.getElementById('confirmDeleteBtn').onclick = async function() {
+                await deleteBudget(currentBudgetIdToDelete);
+                closeModal();
+            };
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            document.getElementById('confirmModal').classList.remove('flex');
+            currentBudgetIdToDelete = null;
+        }
+
+        async function deleteBudget(id) {
+            await fetch(`http://localhost:5000/api/budgeting/${id}`, {
+                method: 'DELETE'
+            });
+            alert('Anggaran berhasil dihapus');
+            fetchBudget();
+        }
+
+        function displayBudget(budget) {
+            let totalBudgetInThisMonth = 0;
+            let output = `
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">Anggaran untuk ${budget.month}</h3>
+                    <div class="space-x-3">
+                        <button onclick="showDeleteConfirmation('${budget.id}')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md">
+                            Hapus
+                        </button>
+                        <button onclick="editBudget('${budget.month}', '${budget.userId}')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md">
+                            Edit
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            budget.categories.forEach((category) => {
+                output += `
+                    <div class="border border-gray-200 p-6 rounded-xl bg-gray-50 mb-4 hover:shadow-md transition-all duration-200">
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <p class="font-semibold text-gray-800 text-lg">${category.name}</p>
+                                <div class="flex flex-col items-end">
+                                    <p class="font-bold text-gray-900">Rp${category.total.toLocaleString()}</p>
+                                    <div class="flex space-x-3 text-xs">
+                                        <span class="text-red-500">Terpakai: Rp${category.subcategories.reduce((sum, sub) => sum + (sub.used || 0), 0).toLocaleString()}</span>
+                                        <span class="text-green-600">Sisa: Rp${(category.total - category.subcategories.reduce((sum, sub) => sum + (sub.used || 0), 0)).toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                                <div class="bg-${category.subcategories.reduce((sum, sub) => sum + (sub.used || 0), 0) > category.total ? 'red' : 'blue'}-600 h-2.5 rounded-full" style="width: ${Math.min((category.subcategories.reduce((sum, sub) => sum + (sub.used || 0), 0) / category.total) * 100, 100)}%"></div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            ${category.subcategories.map(sub => {
+                                totalBudgetInThisMonth += sub.amount;
+                                return `
+                                    <div class="flex flex-col text-sm bg-white p-4 rounded-lg border border-gray-100 hover:border-gray-200 transition-all duration-200">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <span class="text-gray-700">${sub.name}</span>
+                                            <div class="flex flex-col items-end">
+                                                <span class="font-medium text-gray-900">Rp${sub.amount.toLocaleString()}</span>
+                                                <span class="text-xs text-${sub.used > 0 ? 'red' : 'gray'}-500">Terpakai: Rp${(sub.used || 0).toLocaleString()}</span>
+                                                <span class="text-xs text-green-600">Sisa: Rp${(sub.amount - (sub.used || 0)).toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                            <div class="bg-${(sub.used || 0) > sub.amount ? 'red' : 'blue'}-600 h-2.5 rounded-full" style="width: ${Math.min(((sub.used || 0) / sub.amount) * 100, 100)}%"></div>
+                                        </div>
+                                    </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            totalBudget = totalBudgetInThisMonth;
+            output += `
+                <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-100">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="text-green-800 font-medium text-lg">
+                            Total Anggaran: <span class="font-bold">Rp${totalBudgetInThisMonth.toLocaleString()}</span>
+                        </p>
+                        <div class="flex space-x-4">
+                            <p class="text-red-600 font-medium">
+                                Terpakai: <span class="font-bold">Rp${budget.categories.reduce((sum, cat) => sum + cat.subcategories.reduce((subSum, sub) => subSum + (sub.used || 0), 0), 0).toLocaleString()}</span>
+                            </p>
+                            <p class="text-green-600 font-medium">
+                                Sisa: 
+                                <span class="font-bold">
+                                    Rp${
+                                        (totalBudgetInThisMonth - budget.categories.reduce((sum, cat) => sum + cat.subcategories.reduce((subSum, sub) => subSum + (sub.used || 0), 0), 0)).toLocaleString()
+                                        }
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 mt-2">
+                        <div class="bg-${budget.categories.reduce((sum, cat) => sum + cat.subcategories.reduce((subSum, sub) => subSum + (sub.used || 0), 0), 0) > totalBudgetInThisMonth ? 'red' : 'green'}-600 h-3 rounded-full" style="width: ${Math.min((budget.categories.reduce((sum, cat) => sum + cat.subcategories.reduce((subSum, sub) => subSum + (sub.used || 0), 0), 0) / totalBudgetInThisMonth) * 100, 100)}%"></div>
+                    </div>
+                </div>
+                <div id="usableMinBudget"></div>
+            </div>`;
+            
+            document.getElementById('budgetOutput').innerHTML = output;
+            fetchUsableMoney();
+        }
+
+        function editBudget(month, userId) {
+            document.getElementById('budgetForm').classList.remove('hidden');
+            document.getElementById('categories').innerHTML = '';
+
+            fetch(`http://localhost:5000/api/budgeting/${userId}/${month}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.categories.forEach(category => {
+                        addCategory(category.name, category.total, category.subcategories);
+                    });
+                    document.getElementById('budgetForm').setAttribute('data-id', data.id);
+                    
+                    if (!document.getElementById('updateBudgetButton')) {
+                        const updateButton = document.createElement('button');
+                        updateButton.id = 'updateBudgetButton';
+                        updateButton.className = 'bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-all duration-200 font-medium shadow-sm hover:shadow-md mt-4';
+                        updateButton.innerText = 'Simpan Perubahan';
+                        updateButton.onclick = updateBudget;
+                        document.getElementById('budgetForm').appendChild(updateButton);
+                    }
+                });
+        }
+
+        async function updateBudget() {
+            const budgetId = document.getElementById('budgetForm').getAttribute('data-id');
+            if (!budgetId) {
+                alert('ID anggaran tidak ditemukan');
+                return;
+            }
+
+            // Ambil data anggaran saat ini untuk mendapatkan nilai used
+            const userId = document.getElementById('userId').value;
+            const month = document.getElementById('month').value;
+            const currentBudgetResponse = await fetch(`http://localhost:5000/api/budgeting/${userId}/${month}`);
+            const currentBudget = await currentBudgetResponse.json();
+            
+            const categories = [];
+            document.querySelectorAll('.category-name').forEach((categoryInput, index) => {
+                const categoryTotal = document.querySelectorAll('.category-total')[index].value;
+                const subcategories = [];
+                
+                categoryInput.parentElement.querySelectorAll('.sub-name').forEach((subInput, subIndex) => {
+                    // Cari nilai used dari anggaran saat ini
+                    let used = 0;
+                    const categoryName = categoryInput.value;
+                    const subcategoryName = subInput.value;
+                    
+                    // Cari kategori yang sesuai
+                    const currentCategory = currentBudget.categories.find(cat => cat.name === categoryName);
+                    if (currentCategory) {
+                        // Cari subkategori yang sesuai
+                        const currentSubcategory = currentCategory.subcategories.find(sub => sub.name === subcategoryName);
+                        if (currentSubcategory && currentSubcategory.used) {
+                            used = currentSubcategory.used;
+                        }
+                    }
+                    
+                    subcategories.push({
+                        name: subInput.value,
+                        amount: parseInt(subInput.parentElement.querySelector('.sub-amount').value) || 0,
+                        used: used
+                    });
+                });
+
+                categories.push({
+                    name: categoryInput.value,
+                    total: parseInt(categoryTotal) || 0,
+                    subcategories
+                });
+            });
+
+            try {
+                const response = await fetch(`http://localhost:5000/api/budgeting/${budgetId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categories })
+                });
+
+                if (response.ok) {
+                    alert('Anggaran berhasil diperbarui');
+                    fetchBudget();
+                    document.getElementById('budgetForm').classList.add('hidden');
+                } else {
+                    throw new Error('Failed to update budget');
+                }
+            } catch (error) {
+                alert('Gagal memperbarui anggaran: ' + error.message);
+            }
+        }
+
+        // Export functionality
+        document.addEventListener("DOMContentLoaded", function() {
+            const exportButton = document.getElementById("exportButton");
+            const exportDropdown = document.getElementById("exportDropdown");
+            
+            // Toggle dropdown when export button is clicked
+            exportButton.addEventListener("click", function(e) {
+                e.stopPropagation();
+                exportDropdown.classList.toggle("hidden");
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener("click", function(e) {
+                if (!exportButton.contains(e.target) && !exportDropdown.contains(e.target)) {
+                    exportDropdown.classList.add("hidden");
+                }
+            });
+        });
+        
+        function exportData(format) {
+            const userId = document.getElementById("userId").value;
+            const month = document.getElementById("month").value;
+            
+            if (!userId || !month) {
+                alert('Masukkan User ID dan Bulan!');
+                return;
+            }
+            
+            // Create the export URL for budget data
+            const exportUrl = `http://localhost:5000/export-budget/${userId}/${month}/${format}`;
+            
+            // Create a temporary link and trigger download
+            const link = document.createElement("a");
+            link.href = exportUrl;
+            link.target = "_blank";
+            link.download = `budget_${month}.${format}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Hide dropdown after export
+            document.getElementById("exportDropdown").classList.add("hidden");
+            
+            alert(`Mengekspor data anggaran sebagai ${format.toUpperCase()}...`);
+        }
+    </script>
+</body>
+</html>
