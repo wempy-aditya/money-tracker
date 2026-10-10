@@ -204,7 +204,13 @@
 		App.closeModal('budgetModal');
 	};
 
+	function clearFormError() {
+		var box = document.getElementById('budgetFormError');
+		if (box) box.hidden = true;
+	}
+
 	window.addCategory = function () {
+		clearFormError();
 		var input = document.getElementById('newCategoryName');
 		var name = input.value.trim();
 		if (!name) {
@@ -222,6 +228,7 @@
 	};
 
 	window.addSubcategory = function (categoryIndex) {
+		clearFormError();
 		// Adds an empty row to type into rather than using a browser prompt,
 		// which would look and behave inconsistently with the rest of the form.
 		draft[categoryIndex].subcategories.push({ name: '', amount: 0 });
@@ -265,9 +272,16 @@
 		});
 
 		if (categories.length === 0) {
+			// The toast disappears in a second and the form looks untouched, so the
+			// reason is also written next to the fields.
+			document.getElementById('budgetFormError').hidden = false;
+			document.getElementById('budgetFormError').textContent =
+				'Setiap kategori harus punya minimal satu subkategori. ' +
+				'Periksa juga kolom jumlah, boleh 0.';
 			App.toast('Tambahkan minimal satu kategori dengan subkategori.', 'error');
 			return null;
 		}
+		document.getElementById('budgetFormError').hidden = true;
 
 		return App.api(API, { method: 'POST', body: { month: month, categories: categories } })
 			.then(function () {
@@ -354,10 +368,21 @@
 		document.getElementById('budgetForm').addEventListener('submit', function (event) {
 			event.preventDefault();
 			var button = event.target.querySelector('button[type=submit]');
+			var original = button.textContent;
+
+			// Guard against a second click while the first request is still running.
+			// submitBudget() can return null on a validation failure, so the reset has
+			// to happen in finally rather than in the success path only.
+			if (button.disabled) return;
 			button.disabled = true;
-			submitBudget().finally(function () {
-				button.disabled = false;
-			});
+			button.textContent = 'Menyimpan...';
+
+			Promise.resolve(submitBudget())
+				.catch(function () { /* submitBudget already toasts. */ })
+				.finally(function () {
+					button.disabled = false;
+					button.textContent = original;
+				});
 		});
 
 		App.api('/api/auth/me')

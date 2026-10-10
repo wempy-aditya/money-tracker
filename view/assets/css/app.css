@@ -521,6 +521,18 @@ a:hover {
 	color: var(--text-muted);
 }
 
+.form-error {
+	margin: 0 0 12px;
+	padding: 9px 11px;
+	border: 1px solid var(--negative);
+	border-radius: var(--radius-control);
+	background: var(--negative-soft);
+	color: var(--negative);
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+
 .field__error {
 	margin-top: 5px;
 	font-size: 13px;
