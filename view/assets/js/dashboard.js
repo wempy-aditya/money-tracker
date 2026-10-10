@@ -462,6 +462,8 @@
 
 	/* ---------------------------------------------------------------- boot */
 
+	// The page markup calls these through inline onclick/onchange, so they have to
+	// be reachable as globals, not just module-local functions.
 	window.loadDashboard = function () {
 		if (!userId) return;
 		return Promise.all([
@@ -473,6 +475,11 @@
 			loadRecentTransactions()
 		]);
 	};
+
+	window.loadIncomeExpenseSummary = loadIncomeExpenseSummary;
+	window.loadExpenseByCategory = loadExpenseByCategory;
+	window.loadFinancialTrend = loadFinancialTrend;
+	window.loadBudgetComparison = loadBudgetComparison;
 
 	document.addEventListener('DOMContentLoaded', function () {
 		document.getElementById('month').value = getCurrentMonth();

@@ -108,6 +108,9 @@
             </div>
             <div class="toolbar" style="margin:0">
                 <input class="input" type="month" id="month" aria-label="Pilih bulan" />
+                <button class="btn btn--primary" type="button" id="addTransactionButton" onclick="openModal()">
+                    Tambah transaksi
+                </button>
                 <button class="btn btn--secondary" type="button" id="exportButton" onclick="exportData()">Ekspor</button>
                 <select class="select" id="exportDropdown" style="display:none" aria-label="Format ekspor"></select>
             </div>
@@ -187,8 +190,9 @@
                 <div class="field">
                     <label class="field__label" for="category">Kategori</label>
                     <input class="input" type="text" id="category" list="categoryOptions" placeholder="Contoh: Makan"
-                        required />
+                        />
                     <datalist id="categoryOptions"></datalist>
+                    <p class="field__hint" id="categoryHint" hidden></p>
                 </div>
                 <div class="field">
                     <label class="field__label" for="subcategory">Subkategori</label>

@@ -122,6 +122,11 @@
 	 * Suggests categories from this month's budget. A 404 simply means no
 	 * budget has been set, which is fine: the fields stay free text.
 	 */
+	// Categories come from the budget for the selected month, so a brand new account
+	// has none yet. That used to leave the required category select empty and the
+	// form silently refused to submit, with nothing explaining why. A transaction is
+	// still a valid record without a category, so the field stays optional and the
+	// hint points at the budget page instead.
 	function loadCategories() {
 		return App.api('/api/budgeting/' + encodeURIComponent(userId) + '/' + currentMonth)
 			.then(function (budget) {
@@ -135,18 +140,36 @@
 					});
 				});
 
-				document.getElementById('categoryOptions').innerHTML = categories.map(function (name) {
-					return '<option value="' + App.escapeHtml(name) + '"></option>';
-				}).join('');
-
-				document.getElementById('subcategoryOptions').innerHTML = subcategories.map(function (name) {
-					return '<option value="' + App.escapeHtml(name) + '"></option>';
-				}).join('');
+				applyCategoryOptions();
 			})
 			.catch(function () {
+				// 404 simply means "no budget for this month", which is normal.
 				categories = [];
 				subcategories = [];
+				applyCategoryOptions();
 			});
+	}
+
+	function applyCategoryOptions() {
+		// The controls are <input list="..."> backed by a <datalist>, so the options
+		// belong on the datalist element. Writing <option> into the input itself is
+		// silently ignored, which is why the suggestions never appeared.
+		document.getElementById('categoryOptions').innerHTML = categories.map(function (name) {
+			return '<option value="' + App.escapeHtml(name) + '"></option>';
+		}).join('');
+
+		document.getElementById('subcategoryOptions').innerHTML = subcategories.map(function (name) {
+			return '<option value="' + App.escapeHtml(name) + '"></option>';
+		}).join('');
+
+		var hint = document.getElementById('categoryHint');
+		if (hint) {
+			hint.hidden = categories.length > 0;
+			hint.innerHTML = categories.length === 0
+				? 'Kategori diambil dari anggaran bulan ini. ' +
+				  '<a href="/budget">Buat anggaran</a> dulu, atau biarkan kosong.'
+				: '';
+		}
 	}
 
 	function loadTransactions() {
