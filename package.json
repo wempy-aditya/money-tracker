@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test 'test/**/*.test.js'"
   },
   "keywords": [],
   "author": "",
@@ -13,8 +15,13 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "firebase-admin": "^13.0.2",
     "json2csv": "^6.0.0-alpha.2",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.1"
+  },
+  "engines": {
+    "node": ">=22.5.0"
   }
 }

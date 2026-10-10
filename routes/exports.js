@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const admin = require('firebase-admin');
+const { firestore } = require('../db/firestore');
 
-const db = admin.firestore();
+const db = firestore();
 
 const { Parser } = require('json2csv');
 const XLSX = require('xlsx');

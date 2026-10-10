@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const admin = require('firebase-admin');
-const db = admin.firestore();
+const { firestore } = require('../db/firestore');
+const db = firestore();
 const goalsCollection = db.collection('goals');
 
 // Get all goals

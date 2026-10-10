@@ -11,6 +11,12 @@ yarn-error.log
 .env.test.local
 .env.production.local
 
+# SQLite database (created at runtime)
+data/
+*.db
+*.db-wal
+*.db-shm
+
 # Firebase
 firebase-debug.log
 firebaserc
