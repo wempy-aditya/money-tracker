@@ -25,8 +25,14 @@ const VIEW_DIR = path.join(__dirname, '..', 'view');
  */
 const PAGES = fs.readdirSync(HTML_DIR).filter((name) => name.endsWith('.html')).sort();
 
-/** Every page except the public and error ones must have a route in server.js. */
-const ROUTED_PAGES = ['index.html', 'home.html', 'transactions.html', 'budget.html', 'goals.html', 'recurring.html'];
+/** The pages that live behind a session; login and the error page do not. */
+const PUBLIC_PAGES = new Set(['login.html', '404.html']);
+
+/**
+ * Discovered too. Hardcoding this list meant insights.html could be built, routed
+ * and then shipped with no assertion that anything about it worked.
+ */
+const ROUTED_PAGES = PAGES.filter((page) => !PUBLIC_PAGES.has(page));
 
 function serverSource() {
 	return fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
@@ -91,20 +97,55 @@ test('every page references only handlers its scripts define', () => {
 });
 
 test('every element id the scripts read exists in the markup', () => {
+	// An id the script builds at runtime is exempt only if the same script really
+	// does create it. insights.js used to read #simulationError, which it also
+	// wrote, so the test could not see the difference between "created later" and
+	// "never exists" until the exemption itself became explicit.
+	const offenders = [];
+
 	for (const page of PAGES) {
 		const html = readPage(page);
-		const needed = idsUsedInJs(allScriptsFor(html));
+		const js = allScriptsFor(html);
+		const needed = idsUsedInJs(js);
 		const present = idsPresentInHtml(html);
 
-		// Ids the script creates at runtime (containers it fills in) are exempt
-		// only when the script also declares them; anything else must exist.
 		for (const id of needed) {
+			if (present.has(id)) continue;
+
+			const createdAtRuntime = new RegExp(`id=[\\"']${id}[\\"']`).test(js)
+				|| new RegExp(`setAttribute\\(\\s*[\\"']id[\\"']\\s*,\\s*[\\"']${id}`).test(js);
 			assert.ok(
-				present.has(id),
-				`${page} scripts read #${id} but the markup has no such element`
+				createdAtRuntime,
+				`${page} scripts read #${id} but nothing in the markup or the script creates it`
 			);
 		}
 	}
+
+	assert.deepEqual(offenders, []);
+});
+
+test('handlers a script calls from generated markup are defined', () => {
+	// budget.js builds its rows as strings containing onclick="fn(...)". The page
+	// renders fine with a dangling name and the button simply does nothing, which
+	// is the same silent failure these tests exist to catch.
+	const offenders = [];
+
+	for (const page of PAGES) {
+		const html = readPage(page);
+		const js = allScriptsFor(html);
+		const defined = globalFunctionsIn(js);
+		defined.add('App');
+
+		// onclick="updateSubName(0, 1, this.value)" inside a template string.
+		for (const m of js.matchAll(/onclick=\\?["']\s*(\w+)\s*\(/g)) {
+			const name = m[1];
+			if (!defined.has(name)) {
+				offenders.push(`${page}: generated markup calls ${name}() which no script defines`);
+			}
+		}
+	}
+
+	assert.deepEqual(offenders, []);
 });
 
 test('every page pulls only scripts that exist on disk', () => {

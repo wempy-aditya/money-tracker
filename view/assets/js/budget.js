@@ -159,6 +159,15 @@
 			return '<div class="budget-group" style="margin-bottom:12px">' +
 				'<div class="budget-group__head">' +
 				'<span class="budget-group__name">' + App.escapeHtml(category.name) + '</span>' +
+				'<div class="kind-picker">' +
+				'<span class="kind-picker__label">Jenis</span>' +
+				'<button class="kind-picker__btn' + (category.kind === 'needs' ? ' is-on' : '') +
+				'" type="button" onclick="updateCategoryKind(' + ci +
+				', \'needs\')" aria-pressed="' + (category.kind === 'needs') + '">Kebutuhan</button>' +
+				'<button class="kind-picker__btn' + (category.kind === 'wants' ? ' is-on' : '') +
+				'" type="button" onclick="updateCategoryKind(' + ci +
+				', \'wants\')" aria-pressed="' + (category.kind === 'wants') + '">Keinginan</button>' +
+				'</div>' +
 				'<button class="icon-btn icon-btn--danger" type="button" onclick="removeCategory(' + ci +
 				')" aria-label="Hapus kategori">&#128465;</button>' +
 				'</div>' +
@@ -217,13 +226,32 @@
 			input.focus();
 			return;
 		}
-		draft.push({ name: name, subcategories: [] });
+		draft.push({ name: name, kind: null, subcategories: [] });
 		input.value = '';
 		renderDraftForm();
 	};
 
 	window.removeCategory = function (index) {
 		draft.splice(index, 1);
+		renderDraftForm();
+	};
+
+	/**
+	 * Label a category as a need or a want. Clicking the active label again
+	 * clears it, because an unlabelled category is a valid and honest state and
+	 * the insights page treats it as "not classified" rather than guessing.
+	 */
+	window.updateCategoryKind = function (index, kind) {
+		clearFormError();
+		var category = draft[index];
+		if (!category) return;
+
+		if (category.kind === kind) {
+			category.kind = null;
+		} else {
+			category.kind = kind;
+		}
+
 		renderDraftForm();
 	};
 

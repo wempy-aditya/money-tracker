@@ -15,6 +15,18 @@ const ownerOf = (req) => req.auth.userId;
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+/**
+ * Whether a category covers a need or a want. Engel's law only says something
+ * useful once that split exists, but an unlabelled category must stay unlabelled
+ * rather than be guessed at: defaulting to either value would quietly turn the
+ * score into a claim the data does not support.
+ */
+const CATEGORY_KINDS = ['needs', 'wants'];
+
+function normalizeKind(value) {
+	return CATEGORY_KINDS.includes(value) ? value : null;
+}
+
 function normalizeCategories(categories) {
 	if (!Array.isArray(categories) || categories.length === 0) {
 		throw Object.assign(new Error('Categories must be a non-empty array'), { status: 400 });
@@ -25,6 +37,7 @@ function normalizeCategories(categories) {
 		return {
 			name: String(category.name || '').trim(),
 			total,
+			kind: normalizeKind(category.kind),
 			subcategories: subcategories.map((sub) => ({
 				name: String(sub.name || '').trim(),
 				amount: Number(sub.amount ?? 0),

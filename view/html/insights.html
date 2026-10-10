@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Financial Insights - Daily Money Tracker</title>
+    <link rel="stylesheet" href="/assets/css/app.css" />
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav__inner">
+            <a class="nav__brand" href="/home">
+                <span class="nav__mark" aria-hidden="true">Rp</span>
+                <span>Money Tracker</span>
+            </a>
+            <div class="nav__links">
+                <a class="nav__link" href="/home">Dashboard</a>
+                <a class="nav__link" href="/wallet">Dompet</a>
+                <a class="nav__link" href="/transactions">Transaksi</a>
+                <a class="nav__link" href="/budget">Anggaran</a>
+                <a class="nav__link" href="/goals">Target</a>
+                <a class="nav__link" href="/recurring">Aturan</a>
+                <a class="nav__link" href="/insights" aria-current="page">Insights</a>
+            </div>
+            <div class="nav__actions">
+                <span class="nav__user" id="currentUser"></span>
+                <button class="icon-btn" type="button" data-theme-toggle aria-label="Ganti tema">&#9681;</button>
+                <button class="icon-btn" type="button" data-sign-out aria-label="Keluar" title="Keluar">&#9099;</button>
+                <button class="nav__toggle" type="button" data-nav-toggle aria-expanded="false"
+                    aria-label="Buka menu">&#9776;</button>
+            </div>
+        </div>
+        <div class="nav__drawer" data-nav-drawer data-open="false">
+            <a class="nav__link" href="/home">Dashboard</a>
+            <a class="nav__link" href="/wallet">Dompet</a>
+            <a class="nav__link" href="/transactions">Transaksi</a>
+            <a class="nav__link" href="/budget">Anggaran</a>
+            <a class="nav__link" href="/goals">Target</a>
+            <a class="nav__link" href="/recurring">Aturan</a>
+            <a class="nav__link" href="/insights" aria-current="page">Insights</a>
+        </div>
+    </nav>
+
+    <main class="page">
+        <div class="page-head">
+            <div class="page-head__text">
+                <h1>Advanced Financial Insights</h1>
+                <p>Empat analisis dari data yang sudah tercatat: Hukum Engel, batas belanja aman,
+                    prinsip Pareto, dan simulasi kekayaan.</p>
+            </div>
+            <div class="toolbar" style="margin:0">
+                <button class="btn btn--primary" type="button" id="reloadInsightsButton"
+                    onclick="loadInsights()">Muat ulang</button>
+            </div>
+        </div>
+
+        <div id="insightsRoot">
+            <div class="card"><div class="card__body">
+                <div class="skeleton" style="height:120px"></div>
+            </div></div>
+        </div>
+    </main>
+
+    <script src="/assets/vendor/chart.umd.js"></script>
+    <script src="/assets/js/app.js"></script>
+    <script src="/assets/js/insights.js"></script>
+</body>
+
+</html>

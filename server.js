@@ -34,6 +34,7 @@ app.use('/api/transactions', requireAuth, require('./routes/transactions'));
 app.use('/api/analytics', requireAuth, require('./routes/analytics'));
 app.use('/api/goals', requireAuth, require('./routes/goals'));
 app.use('/api/recurring', requireAuth, require('./routes/recurring'));
+app.use('/api/insights', requireAuth, require('./routes/insights'));
 app.use('/export', requireAuth, require('./routes/exports'));
 
 const PUBLIC_DIR = path.join(__dirname, './view');
@@ -55,7 +56,8 @@ const PAGES = {
 	'/budget': 'budget.html',
 	'/transactions': 'transactions.html',
 	'/goals': 'goals.html',
-	'/recurring': 'recurring.html'
+	'/recurring': 'recurring.html',
+	'/insights': 'insights.html'
 };
 
 function requirePage(req, res, next) {
