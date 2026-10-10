@@ -131,3 +131,68 @@ regressions.
 
 Fixes 1 and 6 are one-liners. Fix 4 needs a real decision about identity. Fixes 2
 and 5 are correctness work worth doing before any real data goes in.
+
+---
+
+# Update 2026-10-10 — bugs fixed, authentication added, UI rebuilt
+
+All seven issues above were fixed in commit `e20c194`. They were left in place
+originally only because the first brief was to change storage without changing
+flow; the follow-up brief asked for them to be fixed.
+
+| # | Issue | Status |
+|---|---|---|
+| 1 | Export 404 (double `/export/export`) | Route paths corrected, frontend updated to match |
+| 2 | Refund applied to the new wallet | Each wallet now adjusted by its own transaction's sign |
+| 3 | Ownership filter missing on lists | `where('userId','==',owner)` restored on wallets, goals, analytics |
+| 4 | No authentication | scrypt + server-side sessions; `userId` comes from the session only |
+| 5 | Non-atomic multi-write | Transfers and transaction writes run in a DB transaction |
+| 6 | Hardcoded `localhost:5000` | All frontend paths are origin-relative |
+| 7 | `POST /api/wallets` ignored `frozen` | Accepted directly |
+
+## Authentication
+
+- `db/auth.js` — scrypt hashing (per-user random salt), sessions stored in SQLite
+  with a 30-day expiry, `httpOnly` `SameSite=Lax` cookie.
+- `routes/auth.js` — `POST /api/auth/register|login|logout`, `GET /api/auth/me`.
+- `requireAuth` guards every `/api/*` route and every app page. Only `/login`,
+  `/api/auth/*` and static assets are public.
+- Rate limiting on login: 10 attempts per username per 15 minutes.
+
+**The important part:** `userId` is now derived from the session and never read
+from a request body or trusted from a URL. Mismatched IDs return 403. Before this,
+any caller could pass someone else's `userId` and read or write their ledger.
+
+## Atomicity
+
+`db/firestore.js` gained `runTransaction`. Wallet transfers, transaction creates,
+transaction updates and deletes now wrap their multi-document writes in a real
+SQLite transaction, so a mid-way failure rolls back instead of leaving a corrupted
+balance.
+
+## Frontend
+
+Rebuilt from 3.669 lines of Tailwind/FontAwesome/Chart.js-from-CDN markup into
+design tokens plus vanilla JS. Notable decisions:
+
+- **Chart.js is vendored locally** (`view/assets/vendor/chart.umd.js`). The old
+  pages loaded Tailwind, Font Awesome and Chart.js from public CDNs, so on a phone
+  without internet the app rendered unstyled with no charts. Font Awesome was
+  dropped in favour of unicode glyphs — no font files to load.
+- Contrast is defined as a pair of tokens: `--accent` for links and `--accent-surface`
+  for anything that carries white text. A single accent cannot satisfy both in dark
+  mode (a light blue is readable as a link but fails as a button background).
+- Inputs are 16px exactly, so iOS Safari does not zoom on focus.
+- Verified WCAG AA for all 14 text/background pairs in both themes.
+
+## Tests
+
+102 pass: 20 shim behaviour, 43 flow over HTTP, 39 auth and authorisation
+(including cross-user access attempts returning 403).
+
+## Still open
+
+- Password reset and email verification do not exist. Acceptable for a
+  single-household LAN app; needed before any public deployment.
+- Sessions are in-process, so restarting the server logs everyone out.
+- There is no HTTPS. Fine on a trusted home LAN, not beyond it.
