@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aturan - Daily Money Tracker</title>
+    <link rel="stylesheet" href="/assets/css/app.css" />
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav__inner">
+            <a class="nav__brand" href="/home">
+                <span class="nav__mark" aria-hidden="true">Rp</span>
+                <span>Money Tracker</span>
+            </a>
+            <div class="nav__links">
+                <a class="nav__link" href="/home">Dashboard</a>
+                <a class="nav__link" href="/wallet">Dompet</a>
+                <a class="nav__link" href="/transactions">Transaksi</a>
+                <a class="nav__link" href="/budget">Anggaran</a>
+                <a class="nav__link" href="/goals">Target</a>
+                <a class="nav__link" href="/recurring" aria-current="page">Aturan</a>
+            </div>
+            <div class="nav__actions">
+                <span class="nav__user" id="currentUser"></span>
+                <button class="icon-btn" type="button" data-theme-toggle aria-label="Ganti tema">&#9681;</button>
+                <button class="icon-btn" type="button" data-sign-out aria-label="Keluar" title="Keluar">&#9099;</button>
+                <button class="nav__toggle" type="button" data-nav-toggle aria-expanded="false"
+                    aria-label="Buka menu">&#9776;</button>
+            </div>
+        </div>
+        <div class="nav__drawer" data-nav-drawer data-open="false">
+            <a class="nav__link" href="/home">Dashboard</a>
+            <a class="nav__link" href="/wallet">Dompet</a>
+            <a class="nav__link" href="/transactions">Transaksi</a>
+            <a class="nav__link" href="/budget">Anggaran</a>
+            <a class="nav__link" href="/goals">Target</a>
+            <a class="nav__link" href="/recurring" aria-current="page">Aturan</a>
+        </div>
+    </nav>
+
+    <main class="page">
+        <div class="page-head">
+            <div class="page-head__text">
+                <h1>Aturan</h1>
+                <p>Transaksi yang berulang: gaji, tagihan, sewa. Aturan tidak pernah menulis
+                    sendiri, jalankan saat sudah jatuh tempo.</p>
+            </div>
+            <div class="toolbar" style="margin:0">
+                <input class="input" type="date" id="throughDate" aria-label=" jalankan sampai tanggal" />
+                <button class="btn btn--primary" type="button" onclick="openAddRuleModal()">Tambah aturan</button>
+                <button class="btn btn--secondary" type="button" id="runRulesButton"
+                    onclick="runDueRules()">Jalankan yang jatuh tempo</button>
+            </div>
+        </div>
+
+        <div class="card mb-16">
+            <div class="card__body">
+                <div class="stats" id="ruleSummary"></div>
+            </div>
+        </div>
+
+        <div id="ruleList" class="grid-auto"></div>
+    </main>
+
+    <!-- Tambah / edit aturan -->
+    <div class="modal" id="ruleModal">
+        <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="ruleModalTitle">
+            <h2 class="modal__title" id="ruleModalTitle">Tambah aturan</h2>
+            <p class="modal__desc">Satu aturan menghasilkan satu transaksi per jadwal sampai Anda
+                menghapusnya.</p>
+
+            <form id="ruleForm">
+                <div class="type-toggle" role="group" aria-label="Jenis transaksi">
+                    <button class="type-toggle__btn" type="button" data-rule-type="expense" aria-pressed="true">
+                        − Pengeluaran
+                    </button>
+                    <button class="type-toggle__btn" type="button" data-rule-type="income" aria-pressed="false">
+                        + Pemasukan
+                    </button>
+                </div>
+                <p class="field__hint">Pilih jenis dulu: ini menentukan tanda pada transaksi
+                    dan apakah saldo bertambah atau berkurang.</p>
+
+                <div class="field">
+                    <label class="field__label" for="ruleName">Nama</label>
+                    <input class="input" type="text" id="ruleName" placeholder="Contoh: Gaji" required />
+                </div>
+
+                <div class="field">
+                    <label class="field__label" for="ruleAmount">Jumlah (Rp)</label>
+                    <input class="input" type="number" id="ruleAmount" min="1" step="1" inputmode="numeric" required />
+                </div>
+
+                <div class="field">
+                    <label class="field__label" for="ruleWallet">Dompet</label>
+                    <select class="select" id="ruleWallet" required></select>
+                </div>
+
+                <div class="field">
+                    <label class="field__label" for="ruleFrequency">Frekuensi</label>
+                    <select class="select" id="ruleFrequency" required>
+                        <option value="monthly">Bulanan</option>
+                        <option value="weekly">Mingguan</option>
+                        <option value="biweekly">Dua mingguan</option>
+                        <option value="yearly">Tahunan</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label class="field__label" for="ruleInterval">Setiap berapa periode</label>
+                    <input class="input" type="number" id="ruleInterval" min="1" step="1" value="1" />
+                </div>
+
+                <div class="field">
+                    <label class="field__label" for="ruleStartDate">Mulai tanggal</label>
+                    <input class="input" type="date" id="ruleStartDate" required />
+                </div>
+
+                <div class="field">
+                    <label class="field__label" for="ruleDayOfMonth">Tanggal dalam bulan</label>
+                    <input class="input" type="number" id="ruleDayOfMonth" min="1" max="31" step="1" />
+                    <p class="field__hint">Bulan yang lebih pendek otomatis disesuaikan. Tanggal 31
+                        jadi tanggal 28 atau 29 di Februari, lalu kembali ke 31 bulan berikutnya.</p>
+                </div>
+
+                <div class="field">
+                    <label class="field__label" for="ruleCategory">Kategori (opsional)</label>
+                    <input class="input" type="text" id="ruleCategory" list="categoryOptions"
+                        placeholder="Kosongkan bila tidak perlu" />
+                    <datalist id="categoryOptions"></datalist>
+                </div>
+
+                <div class="field">
+                    <label class="field__label" for="ruleSubcategory">Subkategori (opsional)</label>
+                    <input class="input" type="text" id="ruleSubcategory" list="subcategoryOptions"
+                        placeholder="Kosongkan bila tidak perlu" />
+                    <datalist id="subcategoryOptions"></datalist>
+                </div>
+
+                <div class="field">
+                    <label class="field__label" for="ruleOccurrences">Jumlah kemunculan (opsional)</label>
+                    <input class="input" type="number" id="ruleOccurrences" min="1" step="1"
+                        placeholder="Kosong = selamanya" />
+                </div>
+
+                <p class="form-error" id="ruleFormError" role="alert" hidden></p>
+
+                <div class="modal__actions">
+                    <button class="btn btn--secondary" type="button" onclick="closeRuleModal()">Batal</button>
+                    <button class="btn btn--primary" type="submit" id="ruleSubmitButton">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Konfirmasi hapus -->
+    <div class="modal" id="deleteRuleModal">
+        <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="deleteRuleModalTitle">
+            <h2 class="modal__title" id="deleteRuleModalTitle">Hapus aturan</h2>
+            <p class="modal__desc" id="deleteRuleDescription">
+                Aturan akan dihapus. Transaksi yang sudah pernah dibuat tetap tersimpan.
+            </p>
+            <div class="modal__actions">
+                <button class="btn btn--secondary" type="button" onclick="closeDeleteRuleModal()">Batal</button>
+                <button class="btn btn--danger" type="button" onclick="confirmDeleteRule()">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/js/app.js"></script>
+    <script src="/assets/js/recurring.js"></script>
+</body>
+
+</html>

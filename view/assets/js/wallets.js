@@ -99,9 +99,9 @@
 	}
 
 	function load() {
-		return App.api(API)
-			.then(function (data) {
-				wallets = data || [];
+		return Promise.all([App.api(API), loadTransfers()])
+			.then(function (results) {
+				wallets = results[0] || [];
 				renderSummary();
 				renderWallets();
 				populateDropdowns();
@@ -110,6 +110,56 @@
 				App.toast(error.message, 'error');
 			});
 	}
+
+	/* ------------------------------------------------------ transfer history */
+
+	function renderTransfers(rows) {
+		var host = document.getElementById('transferHistory');
+		if (!host) return;
+
+		if (!rows || rows.length === 0) {
+			host.innerHTML = '<tr><td colspan="4" class="text-muted">' +
+				'Belum ada transfer. Pindahkan dana antar dompet dan riwayatnya muncul di sini.' +
+				'</td></tr>';
+			return;
+		}
+
+		host.innerHTML = rows.map(function (row) {
+			// Pad the time by hand: toLocaleString renders "11.48" here, which reads
+			// like a range rather than a time.
+			var label = '-';
+			if (row.createdAt) {
+				var when = new Date(row.createdAt);
+				if (!isNaN(when)) {
+					var pad = function (n) { return String(n).padStart(2, '0'); };
+					label = App.formatDate(when.getFullYear() + '-' +
+						pad(when.getMonth() + 1) + '-' + pad(when.getDate())) +
+						' ' + pad(when.getHours()) + ':' + pad(when.getMinutes());
+				}
+			}
+
+			return '<tr>' +
+				'<td class="text-muted">' + App.escapeHtml(label) + '</td>' +
+				'<td>' + App.escapeHtml(row.fromWalletName || '-') + '</td>' +
+				'<td>' + App.escapeHtml(row.toWalletName || '-') + '</td>' +
+				'<td class="table__num">' + App.formatRupiah(row.amount) + '</td>' +
+				'</tr>';
+		}).join('');
+	}
+
+	window.loadTransfers = function () {
+		var host = document.getElementById('transferHistory');
+		if (!host) return Promise.resolve();
+
+		return App.api(API + '/transfers')
+			.then(renderTransfers)
+			.catch(function (error) {
+				// A failure here must not take the wallet list down with it.
+				host.innerHTML = '<tr><td colspan="4" class="text-negative">' +
+					'Riwayat transfer gagal dimuat: ' + App.escapeHtml(error.message) +
+					'</td></tr>';
+			});
+	};
 
 	/* ------------------------------------------------------------- modals */
 

@@ -29,6 +29,7 @@
                 <a class="nav__link" href="/transactions">Transaksi</a>
                 <a class="nav__link" href="/budget">Anggaran</a>
                 <a class="nav__link" href="/goals">Target</a>
+                <a class="nav__link" href="/recurring">Aturan</a>
             </div>
             <div class="nav__actions">
                 <span class="nav__user" id="currentUser"></span>
@@ -44,6 +45,7 @@
             <a class="nav__link" href="/transactions">Transaksi</a>
             <a class="nav__link" href="/budget">Anggaran</a>
             <a class="nav__link" href="/goals">Target</a>
+            <a class="nav__link" href="/recurring">Aturan</a>
         </div>
     </nav>
 
@@ -64,6 +66,31 @@
         </div>
 
         <div class="grid-auto" id="walletList"></div>
+
+        <div class="card mt-24">
+            <div class="card__head">
+                <h2 class="panel__title">Riwayat transfer</h2>
+                <button class="btn btn--ghost" type="button" id="refreshTransfersButton"
+                    onclick="loadTransfers()">Muat ulang</button>
+            </div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Dari</th>
+                            <th>Ke</th>
+                            <th class="table__num">Jumlah</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transferHistory">
+                        <tr>
+                            <td colspan="4" class="text-muted">Memuat...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </main>
 
     <!-- Tambah dompet -->

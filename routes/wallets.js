@@ -4,6 +4,7 @@ const { firestore } = require('../db/firestore');
 
 const db = firestore();
 const walletsCollection = db.collection('wallets');
+const transfersCollection = db.collection('transfers');
 
 // Every wallet document carries the owner's userId. Previously this route
 // returned every wallet in the database regardless of owner (NOTES.md bug #3),
@@ -112,10 +113,42 @@ router.post('/transfer', async (req, res) => {
 
       await fromWalletRef.update({ balance: fromWallet.balance - amount });
       await toWalletRef.update({ balance: toWallet.balance + amount });
+
+      // The audit record shares the transfer's transaction, so a history entry can
+      // never exist without the balances having moved, or vice versa.
+      await transfersCollection.add({
+        userId,
+        fromWalletId,
+        toWalletId,
+        fromWalletName: fromWallet.name,
+        toWalletName: toWallet.name,
+        amount,
+        createdAt: new Date().toISOString(),
+      });
+
       return { status: 200, message: 'Transfer successful' };
     });
 
     res.status(result.status).json(result.status === 200 ? { message: result.message } : { error: result.error });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 🔹 Riwayat transfer
+router.get('/transfers', async (req, res) => {
+  try {
+    const userId = ownerOf(req);
+    const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
+
+    const snapshot = await transfersCollection.where('userId', '==', userId).get();
+    const transfers = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      // Newest first, which is the only order a transfer log is read in.
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      .slice(0, limit);
+
+    res.status(200).json(transfers);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
