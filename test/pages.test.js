@@ -18,7 +18,19 @@ const fs = require('node:fs');
 const HTML_DIR = path.join(__dirname, '..', 'view', 'html');
 const VIEW_DIR = path.join(__dirname, '..', 'view');
 
-const PAGES = ['index.html', 'home.html', 'transactions.html', 'budget.html', 'goals.html', 'login.html'];
+/**
+ * Discovered, not listed. A hardcoded roster let a whole new page ship with zero
+ * coverage: recurring.html was added and every test below still passed because it
+ * was simply not in the array.
+ */
+const PAGES = fs.readdirSync(HTML_DIR).filter((name) => name.endsWith('.html')).sort();
+
+/** Every page except the public and error ones must have a route in server.js. */
+const ROUTED_PAGES = ['index.html', 'home.html', 'transactions.html', 'budget.html', 'goals.html', 'recurring.html'];
+
+function serverSource() {
+	return fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+}
 
 function readPage(name) {
 	return fs.readFileSync(path.join(HTML_DIR, name), 'utf8');
@@ -144,4 +156,20 @@ test('pages do not depend on public CDNs', () => {
 		}
 	}
 	assert.deepEqual(offenders, []);
+});
+test('every app page is reachable through a route', () => {
+	const server = serverSource();
+	const routes = [...server.matchAll(/'\/(?:\w+)':\s*'([\w.]+\.html)'/g)].map((m) => m[1]);
+
+	for (const page of ROUTED_PAGES) {
+		assert.ok(routes.includes(page), `${page} has no route in server.js`);
+	}
+});
+
+test('every served page appears in the discovered roster', () => {
+	const server = serverSource();
+	const routed = [...server.matchAll(/'\/\w+':\s*'([\w.]+\.html)'/g)].map((m) => m[1]);
+	for (const page of routed) {
+		assert.ok(PAGES.includes(page), `${page} is routed but not checked by these tests`);
+	}
 });

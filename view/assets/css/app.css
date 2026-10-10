@@ -577,6 +577,152 @@ a:hover {
 	border-color: var(--negative);
 }
 
+/* ------------------------------------------------------- card head + title */
+
+.card__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 12px;
+}
+
+.panel__title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.mt-24 {
+	margin-top: 24px;
+}
+
+/* --------------------------------------------------------------- badging */
+
+.badge--muted {
+	background: var(--surface-sunken);
+	color: var(--text-muted);
+}
+
+/* --------------------------------------------- segmented expense/income pick */
+
+/* Shared by the transaction form and the rule form, so both pick a type the
+   same way instead of each page inventing its own switch. */
+.type-toggle {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 4px;
+	padding: 4px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-surface);
+	background: var(--surface-sunken);
+}
+
+.type-toggle__btn {
+	padding: 9px 12px;
+	border: 0;
+	border-radius: var(--radius-control);
+	background: transparent;
+	color: var(--text-secondary);
+	font: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background var(--ease), color var(--ease);
+}
+
+.type-toggle__btn:hover {
+	color: var(--text-primary);
+}
+
+/* aria-pressed, not a class, is what the JS toggles. */
+.type-toggle__btn[aria-pressed='true'] {
+	background: var(--surface-raised);
+	color: var(--text-primary);
+	box-shadow: var(--shadow-sm);
+}
+
+/* --------------------------------------------------------- detail list */
+
+.detail {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 4px 12px;
+	margin: 12px 0 0;
+	font-size: 13px;
+}
+
+.detail dt {
+	color: var(--text-muted);
+}
+
+.detail dd {
+	margin: 0;
+	color: var(--text-primary);
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------- recurring rule */
+
+.rule-card {
+	/* inherits .card; nothing extra needed yet, kept for the paused state hook */
+}
+
+.rule-card__head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.rule-card__title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.rule-card__meta {
+	margin: 2px 0 0;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.rule-card__amount {
+	padding: 8px 12px;
+	text-align: right;
+	white-space: nowrap;
+}
+
+.rule-card__actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-top: 14px;
+}
+
+/* A paused rule stays legible but reads as inactive. */
+.rule-card--paused .rule-card__title {
+	color: var(--text-muted);
+}
+
+/* --------------------------------------------------------- danger ghost */
+
+.btn--danger-ghost {
+	background: transparent;
+	color: var(--negative);
+	border-color: var(--border);
+}
+
+.btn--danger-ghost:hover {
+	background: var(--negative-surface);
+	border-color: var(--negative);
+}
+
 /* -------------------------------------------------------------------- stats */
 
 .stats {

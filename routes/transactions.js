@@ -1,101 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const { firestore } = require('../db/firestore');
+const { recordTransaction, adjustBudgetUsed } = require('../db/transactions');
 
 const db = firestore();
 const transactionsCollection = db.collection('transactions');
 const walletsCollection = db.collection('wallets');
-const budgetsCollection = db.collection('budgets');
 
 const ownerOf = (req) => req.auth.userId;
-
-/**
- * Adjust a budget's subcategory `used` counter by a delta, clamped at zero.
- * Budgets are optional: spending without a matching budget is allowed.
- */
-async function adjustBudgetUsed(userId, date, category, subcategory, delta) {
-  if (!category || !subcategory) return;
-  const month = date.substring(0, 7);
-
-  const snapshot = await budgetsCollection
-    .where('userId', '==', userId)
-    .where('month', '==', month)
-    .get();
-
-  if (snapshot.empty) return;
-
-  const budgetDoc = snapshot.docs[0];
-  const budgetData = budgetDoc.data();
-  const categories = Array.isArray(budgetData.categories) ? budgetData.categories : [];
-
-  const categoryObj = categories.find(cat => cat.name === category);
-  if (!categoryObj) return;
-
-  const subcategoryObj = (categoryObj.subcategories || []).find(sub => sub.name === subcategory);
-  if (!subcategoryObj) return;
-
-  subcategoryObj.used = Math.max(0, (subcategoryObj.used || 0) + delta);
-  await budgetsCollection.doc(budgetDoc.id).update({ categories });
-}
 
 // 🔹 Tambah transaksi (income atau expense)
 router.post('/', async (req, res) => {
   try {
-    // userId comes from the session. It used to be read from the request body,
-    // which meant any caller could write transactions into someone else's
-    // ledger (NOTES.md bug #4).
-    const userId = ownerOf(req);
-    const { date, amount, type, category, subcategory, walletId, description } = req.body;
-
-    // Validasi input
-    if (!date || !amount || !type || !walletId) {
-      return res.status(400).json({ error: 'Field tidak lengkap' });
-    }
-    if (type !== 'income' && type !== 'expense') {
-      return res.status(400).json({ error: 'Tipe harus income atau expense' });
-    }
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Amount harus lebih besar dari nol' });
-    }
-
-    const walletRef = walletsCollection.doc(walletId);
-    const walletDoc = await walletRef.get();
-
-    if (!walletDoc.exists) {
-      return res.status(404).json({ error: 'Wallet tidak ditemukan' });
-    }
-
-    const walletData = walletDoc.data();
-    if (walletData.userId !== userId) {
-      return res.status(404).json({ error: 'Wallet tidak ditemukan' });
-    }
-
-    // Periksa kecukupan saldo SEBELUM membuat transaksi
-    if (type === 'expense' && walletData.balance - walletData.frozen < amount) {
-      return res.status(400).json({ error: 'Saldo tidak mencukupi' });
-    }
-
-    // Creating the transaction and adjusting the wallet balance used to be two
-    // separate writes, so an interruption between them corrupted the balance
-    // (NOTES.md bug #5). One transaction now covers both.
-    const docRef = await db.runTransaction(async () => {
-      const ref = await transactionsCollection.add({ userId, date, amount, type, category, subcategory, walletId, description });
-
-      const updatedBalance =
-        type === 'income' ? walletData.balance + amount : walletData.balance - amount;
-      await walletRef.update({ balance: updatedBalance });
-
-      if (type === 'expense') {
-        await adjustBudgetUsed(userId, date, category, subcategory, amount);
-      }
-      return ref;
-    });
-
-    res.status(201).json({ id: docRef.id, userId, date, amount, type, category, subcategory, walletId, description });
+    // Writes go through the shared helper so a generated transaction from a
+    // recurring rule is indistinguishable from a typed one, budget roll included.
+    const created = await recordTransaction(ownerOf(req), req.body);
+    res.status(201).json(created);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const status = error.status || 500;
+    res.status(status).json({ error: error.message });
   }
 });
+
 
 // 🔹 Ambil transaksi berdasarkan ID
 router.get('/detail/:id', async (req, res) => {
