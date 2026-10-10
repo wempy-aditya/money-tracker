@@ -326,6 +326,15 @@ class Firestore {
 		this.db.exec(SCHEMA);
 	}
 
+	/**
+	 * Escape hatch for code that needs real relational tables (auth) rather than
+	 * document storage. Not part of the Firestore surface — do not use it to work
+	 * around the shim's limitations inside route logic.
+	 */
+	raw() {
+		return this.db;
+	}
+
 	collection(name) {
 		return new CollectionReference(this.db, name);
 	}

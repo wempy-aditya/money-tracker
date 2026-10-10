@@ -7,10 +7,24 @@ const transactionsCollection = db.collection('transactions');
 const walletsCollection = db.collection('wallets');
 const budgetsCollection = db.collection('budgets');
 
+// Analytics are derived from user-owned documents, so every endpoint is scoped
+// to the signed-in user rather than trusting the userId in the path.
+const ownerOf = (req) => req.auth.userId;
+
+function rejectForeignUserId(req, res) {
+  if (req.params.userId !== ownerOf(req)) {
+    res.status(403).json({ error: 'Forbidden' });
+    return true;
+  }
+  return false;
+}
+
 // 🔹 Total Pemasukan & Pengeluaran Per Bulan
 router.get('/income-expense/:userId/:month', async (req, res) => {
   try {
-    const { userId, month } = req.params;
+    if (rejectForeignUserId(req, res)) return;
+    const { month } = req.params;
+    const userId = ownerOf(req);
 
     const querySnapshot = await transactionsCollection
       .where('userId', '==', userId)
@@ -39,10 +53,12 @@ router.get('/income-expense/:userId/:month', async (req, res) => {
 // 🔹 Saldo Akhir Per Wallet
 router.get('/wallets/:userId', async (req, res) => {
   try {
-    const { userId } = req.params;
+    if (rejectForeignUserId(req, res)) return;
+    const userId = ownerOf(req);
 
-    // const querySnapshot = await walletsCollection.where('userId', '==', userId).get();
-    const querySnapshot = await walletsCollection.get();
+    // The ownership filter was commented out, so this returned every wallet
+    // from every user (NOTES.md bug #3). Restored.
+    const querySnapshot = await walletsCollection.where('userId', '==', userId).get();
     const wallets = querySnapshot.docs.map(doc => ({
       id: doc.id,
       name: doc.data().name,
@@ -60,7 +76,9 @@ router.get('/wallets/:userId', async (req, res) => {
 // 🔹 Analisis Realisasi vs Rencana Anggaran
 router.get('/budget-vs-actual/:userId/:month', async (req, res) => {
     try {
-      const { userId, month } = req.params;
+      if (rejectForeignUserId(req, res)) return;
+      const { month } = req.params;
+      const userId = ownerOf(req);
   
       // Ambil data budget berdasarkan userId dan bulan
       const budgetsSnapshot = await budgetsCollection
@@ -115,7 +133,9 @@ router.get('/budget-vs-actual/:userId/:month', async (req, res) => {
 // 🔹 Pengeluaran Berdasarkan Kategori
 router.get('/expense-by-category/:userId/:month', async (req, res) => {
   try {
-    const { userId, month } = req.params;
+    if (rejectForeignUserId(req, res)) return;
+    const { month } = req.params;
+    const userId = ownerOf(req);
 
     const querySnapshot = await transactionsCollection
       .where('userId', '==', userId)
@@ -142,7 +162,8 @@ router.get('/expense-by-category/:userId/:month', async (req, res) => {
 // 🔹 Tren Keuangan (Total per Bulan untuk 6 Bulan Terakhir)
 router.get('/financial-trend/:userId', async (req, res) => {
   try {
-    const { userId } = req.params;
+    if (rejectForeignUserId(req, res)) return;
+    const userId = ownerOf(req);
 
     let result = [];
 

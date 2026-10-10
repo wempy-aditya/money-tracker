@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Halaman tidak ditemukan - Daily Money Tracker</title>
+    <script>
+        try {
+            var stored = localStorage.getItem('money-tracker-theme');
+            if (stored === 'light' || stored === 'dark') {
+                document.documentElement.setAttribute('data-theme', stored);
+            }
+        } catch (error) { /* Ignore. */ }
+    </script>
+    <link rel="stylesheet" href="/assets/css/app.css" />
+</head>
+
+<body>
+    <main class="page">
+        <div class="card">
+            <div class="card__body" style="text-align:center;padding:48px 20px">
+                <h1 style="font-size:20px">Halaman tidak ditemukan</h1>
+                <p class="text-secondary" style="margin-top:6px">
+                    Alamat yang Anda buka tidak ada atau sudah dipindahkan.
+                </p>
+                <a class="btn btn--primary" href="/home" style="margin-top:18px">Ke dashboard</a>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

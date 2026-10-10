@@ -4,776 +4,251 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Financial Goals</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Target - Daily Money Tracker</title>
+    <script>
+        try {
+            var stored = localStorage.getItem('money-tracker-theme');
+            if (stored === 'light' || stored === 'dark') {
+                document.documentElement.setAttribute('data-theme', stored);
+            }
+        } catch (error) { /* Ignore. */ }
+    </script>
+    <link rel="stylesheet" href="/assets/css/app.css" />
     <style>
-        @media (max-width: 768px) {
-            .responsive-grid {
-                grid-template-columns: 1fr;
-            }
-            .responsive-flex {
-                flex-direction: column;
-            }
-            .responsive-flex > * {
-                margin-bottom: 0.5rem;
-                width: 100%;
-            }
+        .goal-card__top {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
         }
 
-        /* Notification styles */
-        .notification {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            z-index: 100;
+        .goal-card__name {
+            font-size: 16px;
+            margin-right: auto;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .goal-card__figures {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .goal-card__current {
+            font-size: 20px;
+            font-weight: 650;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+        }
+
+        .goal-card__target {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .goal-card__meta {
             display: flex;
             align-items: center;
-            animation: slideIn 0.3s ease-out forwards, fadeOut 0.5s ease-out 2.5s forwards;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 24rem;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--text-muted);
         }
 
-        .notification-success {
-            background-color: #d1fae5;
-            border-left: 4px solid #10b981;
-            color: #065f46;
-        }
-
-        .notification-error {
-            background-color: #fee2e2;
-            border-left: 4px solid #ef4444;
-            color: #b91c1c;
-        }
-
-        .notification-info {
-            background-color: #dbeafe;
-            border-left: 4px solid #3b82f6;
-            color: #1e40af;
-        }
-
-        .notification-warning {
-            background-color: #fff7ed;
-            border-left: 4px solid #f97316;
-            color: #c2410c;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes fadeOut {
-            from {
-                opacity: 1;
-            }
-            to {
-                opacity: 0;
-            }
+        .goal-card__desc {
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
         }
     </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen">
-    <!-- Navbar -->
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <a href="/" class="flex-shrink-0 flex items-center">
-                        <i class="fas fa-wallet text-blue-500 text-2xl mr-2"></i>
-                        <span class="text-xl font-bold text-gray-800">Daily Money Tracker</span>
-                    </a>
-                </div>
-                <div class="hidden md:flex items-center space-x-4">
-                    <a href="/home" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                        <i class="fas fa-home mr-1"></i> Dashboard
-                    </a>
-                    <a href="/wallet" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                        <i class="fas fa-wallet mr-1"></i> Wallets
-                    </a>
-                    <a href="/budget" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                        <i class="fas fa-chart-pie mr-1"></i> Budget
-                    </a>
-                    <a href="/transactions" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                        <i class="fas fa-exchange-alt mr-1"></i> Transactions
-                    </a>
-                    <a href="/goals" class="px-3 py-2 rounded-md text-sm font-medium text-blue-600 bg-blue-50">
-                        <i class="fas fa-bullseye mr-1"></i> Financial Goals
-                    </a>
-                </div>
-                <div class="md:hidden flex items-center">
-                    <button id="mobile-menu-button" class="text-gray-600 hover:text-blue-600 focus:outline-none">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                </div>
+<body>
+    <nav class="nav">
+        <div class="nav__inner">
+            <a class="nav__brand" href="/home">
+                <span class="nav__mark" aria-hidden="true">Rp</span>
+                <span>Money Tracker</span>
+            </a>
+            <div class="nav__links">
+                <a class="nav__link" href="/home">Dashboard</a>
+                <a class="nav__link" href="/wallet">Dompet</a>
+                <a class="nav__link" href="/transactions">Transaksi</a>
+                <a class="nav__link" href="/budget">Anggaran</a>
+                <a class="nav__link" href="/goals">Target</a>
+            </div>
+            <div class="nav__actions">
+                <span class="nav__user" id="currentUser"></span>
+                <button class="icon-btn" type="button" data-theme-toggle aria-label="Ganti tema">&#9681;</button>
+                <button class="icon-btn" type="button" data-sign-out aria-label="Keluar" title="Keluar">&#9099;</button>
+                <button class="nav__toggle" type="button" data-nav-toggle aria-expanded="false"
+                    aria-label="Buka menu">&#9776;</button>
             </div>
         </div>
-        <!-- Mobile menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
-            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="/home" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                    <i class="fas fa-home mr-1"></i> Dashboard
-                </a>
-                <a href="/wallet" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                    <i class="fas fa-wallet mr-1"></i> Wallets
-                </a>
-                <a href="/budget" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                    <i class="fas fa-chart-pie mr-1"></i> Budget
-                </a>
-                <a href="/transactions" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                    <i class="fas fa-exchange-alt mr-1"></i> Transactions
-                </a>
-                <a href="/goals" class="block px-3 py-2 rounded-md text-base font-medium text-blue-600 bg-blue-50">
-                    <i class="fas fa-bullseye mr-1"></i> Financial Goals
-                </a>
-            </div>
+        <div class="nav__drawer" data-nav-drawer data-open="false">
+            <a class="nav__link" href="/home">Dashboard</a>
+            <a class="nav__link" href="/wallet">Dompet</a>
+            <a class="nav__link" href="/transactions">Transaksi</a>
+            <a class="nav__link" href="/budget">Anggaran</a>
+            <a class="nav__link" href="/goals">Target</a>
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex justify-between items-center mb-6 responsive-flex">
-                <h2 class="text-2xl font-bold mb-2 md:mb-0">Financial Goals</h2>
-                <div class="flex space-x-2 responsive-flex">
-                    <button onclick="openAddModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md w-full md:w-auto transition-colors">
-                        <i class="fas fa-plus mr-1"></i> Add Goal
-                    </button>
-                </div>
+    <main class="page">
+        <div class="page-head">
+            <div class="page-head__text">
+                <h1>Target</h1>
+                <p>Tabungan dan target yang sedang dikejar.</p>
             </div>
-
-            <div id="walletSummary" class="space-y-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold">Available Frozen Funds</h3>
-                    <span id="totalFrozen" class="text-xl font-bold text-blue-600">Rp0</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold">Allocated to Goals</h3>
-                    <span id="allocatedToGoals" class="text-xl font-bold text-green-600">Rp0</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold">Remaining Frozen Funds</h3>
-                    <span id="remainingFrozen" class="text-xl font-bold text-red-600">Rp0</span>
-                </div>
-            </div>
-
-            <div id="goalsList" class="space-y-4 mb-6"></div>
+            <button class="btn btn--primary" type="button" onclick="openAddModal()">Buat target</button>
         </div>
-    </div>
 
-    <!-- Add Goal Modal -->
-    <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold mb-4">Add New Financial Goal</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Goal Name</label>
-                    <input type="text" id="goalName" placeholder="Enter goal name"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+        <div class="card mb-16">
+            <div class="card__body">
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat__label">Total dana beku</div>
+                        <div class="stat__value" id="totalFrozen">Rp0</div>
+                    </div>
+                    <div class="stat stat--accent">
+                        <div class="stat__label">Dialokasikan</div>
+                        <div class="stat__value" id="allocatedToGoals">Rp0</div>
+                    </div>
+                    <div class="stat stat--positive">
+                        <div class="stat__label">Sisa dana beku</div>
+                        <div class="stat__value" id="remainingFrozen">Rp0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat__label">Jumlah target</div>
+                        <div class="stat__value" id="goalCount">0</div>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Target Amount</label>
-                    <input type="number" id="targetAmount" placeholder="Enter target amount"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Initial Allocation</label>
-                    <input type="number" id="initialAllocation" placeholder="Enter initial allocation"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Target Date</label>
-                    <input type="date" id="targetDate"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="goalDescription" placeholder="Enter goal description"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                </div>
-                <div class="flex justify-end space-x-2 responsive-flex">
-                    <button onclick="closeAddModal()"
-                        class="px-4 py-2 border rounded-lg hover:bg-gray-100 transition-colors w-full md:w-auto">
-                        Cancel
-                    </button>
-                    <button onclick="addGoal()"
-                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors w-full md:w-auto">
-                        Add Goal
-                    </button>
+                <p class="field__hint" style="margin-top:12px">
+                    Alokasi target hanya bisa memakai dana beku. Naikkan dana beku di halaman Dompet
+                    bila ingin menambah alokasi.
+                </p>
+            </div>
+        </div>
+
+        <div class="grid-auto" id="goalsList">
+            <div class="card">
+                <div class="card__body">
+                    <div class="empty">Memuat...</div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Edit Goal Modal -->
-    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold mb-4">Edit Financial Goal</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Goal Name</label>
-                    <input type="text" id="editGoalName" placeholder="Enter goal name"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+    <!-- Buat target -->
+    <div class="modal" id="addModal">
+        <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+            <h2 class="modal__title" id="addModalTitle">Buat target</h2>
+            <p class="modal__desc">Alokasi awal diambil dari dana beku Anda.</p>
+            <form id="addForm">
+                <div class="field">
+                    <label class="field__label" for="goalName">Nama target</label>
+                    <input class="input" type="text" id="goalName" placeholder="Contoh: Dana darurat" required />
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Target Amount</label>
-                    <input type="number" id="editTargetAmount" placeholder="Enter target amount"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                <div class="field">
+                    <label class="field__label" for="targetAmount">Nominal target (Rp)</label>
+                    <input class="input" type="number" id="targetAmount" inputmode="numeric" step="1" min="1"
+                        required />
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Current Amount</label>
-                    <input type="number" id="editCurrentAmount" placeholder="Enter current amount"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                <div class="field">
+                    <label class="field__label" for="initialAllocation">Alokasi awal (Rp)</label>
+                    <input class="input" type="number" id="initialAllocation" inputmode="numeric" step="1" min="0"
+                        value="0" />
+                    <p class="field__hint" id="allocationHint">Maksimal dari dana beku yang tersedia.</p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Target Date</label>
-                    <input type="date" id="editTargetDate"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                <div class="field">
+                    <label class="field__label" for="targetDate">Target tercapai</label>
+                    <input class="input" type="date" id="targetDate" required />
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="editGoalDescription" placeholder="Enter goal description"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                <div class="field">
+                    <label class="field__label" for="goalDescription">Keterangan</label>
+                    <input class="input" type="text" id="goalDescription" placeholder="Opsional" />
                 </div>
-                <div class="flex justify-end space-x-2 responsive-flex">
-                    <button onclick="closeEditModal()"
-                        class="px-4 py-2 border rounded-lg hover:bg-gray-100 transition-colors w-full md:w-auto">
-                        Cancel
-                    </button>
-                    <button onclick="saveEditGoal()"
-                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors w-full md:w-auto">
-                        Save Changes
-                    </button>
+                <div class="modal__actions">
+                    <button class="btn btn--secondary" type="button" onclick="closeAddModal()">Batal</button>
+                    <button class="btn btn--primary" type="submit">Simpan</button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 
-    <!-- Add Funds Modal -->
-    <div id="addFundsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold mb-4">Add Funds to Goal</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount to Add</label>
-                    <input type="number" id="addFundsAmount" placeholder="Enter amount"
-                        class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+    <!-- Edit target -->
+    <div class="modal" id="editModal">
+        <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+            <h2 class="modal__title" id="editModalTitle">Edit target</h2>
+            <p class="modal__desc">Naikkan alokasi hanya bila dana beku mencukupi.</p>
+            <form id="editForm">
+                <div class="field">
+                    <label class="field__label" for="editGoalName">Nama target</label>
+                    <input class="input" type="text" id="editGoalName" required />
                 </div>
-                <div class="flex justify-end space-x-2 responsive-flex">
-                    <button onclick="closeAddFundsModal()"
-                        class="px-4 py-2 border rounded-lg hover:bg-gray-100 transition-colors w-full md:w-auto">
-                        Cancel
-                    </button>
-                    <button onclick="addFundsToGoal()"
-                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors w-full md:w-auto">
-                        Add Funds
-                    </button>
+                <div class="field">
+                    <label class="field__label" for="editTargetAmount">Nominal target (Rp)</label>
+                    <input class="input" type="number" id="editTargetAmount" inputmode="numeric" step="1" min="1"
+                        required />
                 </div>
-            </div>
+                <div class="field">
+                    <label class="field__label" for="editCurrentAmount">Alokasi saat ini (Rp)</label>
+                    <input class="input" type="number" id="editCurrentAmount" inputmode="numeric" step="1" min="0"
+                        required />
+                </div>
+                <div class="field">
+                    <label class="field__label" for="editTargetDate">Target tercapai</label>
+                    <input class="input" type="date" id="editTargetDate" required />
+                </div>
+                <div class="field">
+                    <label class="field__label" for="editGoalDescription">Keterangan</label>
+                    <input class="input" type="text" id="editGoalDescription" />
+                </div>
+                <div class="modal__actions">
+                    <button class="btn btn--secondary" type="button" onclick="closeEditModal()">Batal</button>
+                    <button class="btn btn--primary" type="submit">Simpan</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold mb-2 text-red-600">Confirm Deletion</h3>
-            <p class="mb-4 text-gray-600">Are you sure you want to delete this financial goal? This action cannot be undone.</p>
-            <div class="flex justify-end space-x-2 responsive-flex">
-                <button onclick="closeDeleteModal()"
-                    class="px-4 py-2 border rounded-lg hover:bg-gray-100 transition-colors w-full md:w-auto">
-                    Cancel
-                </button>
-                <button onclick="confirmDeleteGoal()"
-                    class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors w-full md:w-auto">
-                    Delete
-                </button>
+    <!-- Tambah alokasi -->
+    <div class="modal" id="addFundsModal">
+        <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="addFundsTitle">
+            <h2 class="modal__title" id="addFundsTitle">Tambah alokasi</h2>
+            <p class="modal__desc" id="addFundsDesc">Dana ditambahkan dari dana beku.</p>
+            <form id="addFundsForm">
+                <div class="field">
+                    <label class="field__label" for="addFundsAmount">Jumlah tambahan (Rp)</label>
+                    <input class="input" type="number" id="addFundsAmount" inputmode="numeric" step="1" min="1"
+                        required />
+                </div>
+                <div class="modal__actions">
+                    <button class="btn btn--secondary" type="button" onclick="closeAddFundsModal()">Batal</button>
+                    <button class="btn btn--primary" type="submit">Tambahkan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hapus -->
+    <div class="modal" id="deleteModal">
+        <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+            <h2 class="modal__title" id="deleteModalTitle">Hapus target</h2>
+            <p class="modal__desc" id="deleteGoalName">Alokasi dana beku akan dilepas kembali.</p>
+            <div class="modal__actions">
+                <button class="btn btn--secondary" type="button" onclick="closeDeleteModal()">Batal</button>
+                <button class="btn btn--danger" type="button" onclick="confirmDeleteGoal()">Hapus</button>
             </div>
         </div>
     </div>
 
-    <script>
-        const API_URL = window.location.origin + "/api/goals";
-        const WALLETS_API_URL = window.location.origin + "/api/wallets";
-        let selectedGoalId = null;
-
-        // Mobile menu toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            fetchGoals();
-            fetchWalletSummary();
-            
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            
-            if (mobileMenuButton && mobileMenu) {
-                mobileMenuButton.addEventListener('click', function() {
-                    mobileMenu.classList.toggle('hidden');
-                });
-                
-                // Close mobile menu when clicking outside
-                document.addEventListener('click', function(e) {
-                    if (!mobileMenuButton.contains(e.target) && !mobileMenu.contains(e.target)) {
-                        mobileMenu.classList.add('hidden');
-                    }
-                });
-            }
-        });
-
-        // Fetch and display wallet summary
-        async function fetchWalletSummary() {
-            try {
-                const response = await fetch(WALLETS_API_URL);
-                const wallets = await response.json();
-                
-                let totalFrozen = 0;
-                wallets.forEach(wallet => {
-                    totalFrozen += wallet.frozen || 0;
-                });
-                
-                // Fetch goals to calculate allocated amount
-                const goalsResponse = await fetch(API_URL);
-                const goals = await goalsResponse.json();
-                
-                let allocatedToGoals = 0;
-                goals.forEach(goal => {
-                    allocatedToGoals += goal.currentAmount || 0;
-                });
-                
-                const remainingFrozen = totalFrozen - allocatedToGoals;
-                
-                document.getElementById('totalFrozen').textContent = `Rp${totalFrozen.toLocaleString('id-ID')}`;
-                document.getElementById('allocatedToGoals').textContent = `Rp${allocatedToGoals.toLocaleString('id-ID')}`;
-                document.getElementById('remainingFrozen').textContent = `Rp${remainingFrozen.toLocaleString('id-ID')}`;
-            } catch (error) {
-                console.error('Error fetching wallet summary:', error);
-                showNotification('Error fetching wallet data', 'error');
-            }
-        }
-
-        // Fetch and display goals
-        async function fetchGoals() {
-            try {
-                const response = await fetch(API_URL);
-                const goals = await response.json();
-                const goalsList = document.getElementById("goalsList");
-                goalsList.innerHTML = "";
-
-                if (goals.length === 0) {
-                    goalsList.innerHTML = `
-                        <div class="text-center p-8 bg-gray-50 rounded-lg">
-                            <i class="fas fa-bullseye text-gray-300 text-5xl mb-4"></i>
-                            <p class="text-gray-500">No financial goals yet. Create your first goal!</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                goals.forEach((goal) => {
-                    const progress = (goal.currentAmount / goal.targetAmount) * 100;
-                    const daysLeft = getDaysLeft(goal.targetDate);
-                    const statusClass = getStatusClass(progress, daysLeft);
-                    
-                    goalsList.innerHTML += `
-                        <div class="bg-white border rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow">
-                            <div class="space-y-4">
-                                <div class="flex justify-between items-start responsive-flex">
-                                    <div>
-                                        <h3 class="font-semibold text-xl text-gray-800 mb-1">${goal.name}</h3>
-                                        <p class="text-gray-500 text-sm">${goal.description}</p>
-                                    </div>
-                                    <div class="space-x-2">
-                                        <button onclick="openAddFundsModal('${goal.id}')" 
-                                            class="p-2 text-gray-400 hover:text-green-500 transition-colors">
-                                            <i class="fas fa-plus-circle"></i>
-                                        </button>
-                                        <button onclick="openEditModal('${goal.id}')" 
-                                            class="p-2 text-gray-400 hover:text-blue-500 transition-colors">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button onclick="openDeleteModal('${goal.id}')" 
-                                            class="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 responsive-grid">
-                                    <div class="bg-blue-50 p-3 rounded-lg">
-                                        <p class="text-sm text-gray-500">Target Amount</p>
-                                        <p class="text-lg font-semibold text-blue-600">Rp${goal.targetAmount.toLocaleString("id-ID")}</p>
-                                    </div>
-                                    <div class="bg-green-50 p-3 rounded-lg">
-                                        <p class="text-sm text-gray-500">Current Amount</p>
-                                        <p class="text-lg font-semibold text-green-600">Rp${goal.currentAmount.toLocaleString("id-ID")}</p>
-                                    </div>
-                                    <div class="bg-purple-50 p-3 rounded-lg">
-                                        <p class="text-sm text-gray-500">Target Date</p>
-                                        <p class="text-lg font-semibold text-purple-600">${formatDate(goal.targetDate)}</p>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <div class="flex justify-between mb-1">
-                                        <span class="text-sm font-medium text-gray-700">${progress.toFixed(1)}% Complete</span>
-                                        <span class="text-sm font-medium ${statusClass}">${daysLeft} days left</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div class="${getProgressColorClass(progress)} h-2.5 rounded-full" style="width: ${progress}%"></div>
-                                    </div>
-                                </div>
-                                
-                                <div class="text-sm text-gray-500">
-                                    <p>Need to save: Rp${((goal.targetAmount - goal.currentAmount) / Math.max(daysLeft, 1)).toFixed(0).toLocaleString("id-ID")} per day to reach your goal</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-            } catch (error) {
-                console.error('Error fetching goals:', error);
-                showNotification('Error fetching goals data', 'error');
-            }
-        }
-
-        // Helper functions
-        function getDaysLeft(targetDate) {
-            const today = new Date();
-            const target = new Date(targetDate);
-            const diffTime = target - today;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays > 0 ? diffDays : 0;
-        }
-
-        function formatDate(dateString) {
-            const options = { year: 'numeric', month: 'short', day: 'numeric' };
-            return new Date(dateString).toLocaleDateString('id-ID', options);
-        }
-
-        function getStatusClass(progress, daysLeft) {
-            if (progress >= 100) return 'text-green-600';
-            if (daysLeft <= 7) return 'text-red-600';
-            if (daysLeft <= 30) return 'text-yellow-600';
-            return 'text-blue-600';
-        }
-
-        function getProgressColorClass(progress) {
-            if (progress >= 100) return 'bg-green-600';
-            if (progress >= 75) return 'bg-blue-600';
-            if (progress >= 50) return 'bg-yellow-600';
-            if (progress >= 25) return 'bg-orange-600';
-            return 'bg-red-600';
-        }
-
-        // Modal functions
-        function openAddModal() {
-            document.getElementById('addModal').style.display = 'flex';
-        }
-
-        function closeAddModal() {
-            document.getElementById('addModal').style.display = 'none';
-            document.getElementById('goalName').value = '';
-            document.getElementById('targetAmount').value = '';
-            document.getElementById('initialAllocation').value = '';
-            document.getElementById('targetDate').value = '';
-            document.getElementById('goalDescription').value = '';
-        }
-
-        function openEditModal(id) {
-            selectedGoalId = id;
-            
-            fetch(`${API_URL}/${id}`)
-                .then(response => response.json())
-                .then(goal => {
-                    document.getElementById('editGoalName').value = goal.name;
-                    document.getElementById('editTargetAmount').value = goal.targetAmount;
-                    document.getElementById('editCurrentAmount').value = goal.currentAmount;
-                    document.getElementById('editTargetDate').value = goal.targetDate;
-                    document.getElementById('editGoalDescription').value = goal.description;
-                    document.getElementById('editModal').style.display = 'flex';
-                })
-                .catch(error => {
-                    console.error('Error fetching goal details:', error);
-                    showNotification('Error fetching goal details', 'error');
-                });
-        }
-
-        function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
-            selectedGoalId = null;
-        }
-
-        function openAddFundsModal(id) {
-            selectedGoalId = id;
-            document.getElementById('addFundsModal').style.display = 'flex';
-        }
-
-        function closeAddFundsModal() {
-            document.getElementById('addFundsModal').style.display = 'none';
-            document.getElementById('addFundsAmount').value = '';
-            selectedGoalId = null;
-        }
-
-        function openDeleteModal(id) {
-            selectedGoalId = id;
-            document.getElementById('deleteModal').style.display = 'flex';
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').style.display = 'none';
-            selectedGoalId = null;
-        }
-
-        // Goal operations
-        async function addGoal() {
-            const name = document.getElementById("goalName").value;
-            const targetAmount = parseFloat(document.getElementById("targetAmount").value);
-            const initialAllocation = parseFloat(document.getElementById("initialAllocation").value) || 0;
-            const targetDate = document.getElementById("targetDate").value;
-            const description = document.getElementById("goalDescription").value;
-
-            if (!name || isNaN(targetAmount) || !targetDate) {
-                showNotification('Please fill in all required fields', 'error');
-                return;
-            }
-
-            try {
-                // Check if there's enough frozen funds available
-                const walletsResponse = await fetch(WALLETS_API_URL);
-                const wallets = await walletsResponse.json();
-                
-                let totalFrozen = 0;
-                wallets.forEach(wallet => {
-                    totalFrozen += wallet.frozen || 0;
-                });
-                
-                const goalsResponse = await fetch(API_URL);
-                const goals = await goalsResponse.json();
-                
-                let allocatedToGoals = 0;
-                goals.forEach(goal => {
-                    allocatedToGoals += goal.currentAmount || 0;
-                });
-                
-                const remainingFrozen = totalFrozen - allocatedToGoals;
-                
-                if (initialAllocation > remainingFrozen) {
-                    showNotification('Not enough frozen funds available', 'error');
-                    return;
-                }
-
-                await fetch(API_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        name,
-                        targetAmount,
-                        currentAmount: initialAllocation,
-                        targetDate,
-                        description,
-                        createdAt: new Date().toISOString()
-                    }),
-                });
-
-                closeAddModal();
-                fetchGoals();
-                fetchWalletSummary();
-                showNotification('Financial goal added successfully', 'success');
-            } catch (error) {
-                console.error('Error adding goal:', error);
-                showNotification('Error adding financial goal', 'error');
-            }
-        }
-
-        async function saveEditGoal() {
-            const name = document.getElementById("editGoalName").value;
-            const targetAmount = parseFloat(document.getElementById("editTargetAmount").value);
-            const currentAmount = parseFloat(document.getElementById("editCurrentAmount").value);
-            const targetDate = document.getElementById("editTargetDate").value;
-            const description = document.getElementById("editGoalDescription").value;
-
-            if (!name || isNaN(targetAmount) || isNaN(currentAmount) || !targetDate) {
-                showNotification('Please fill in all required fields', 'error');
-                return;
-            }
-
-            try {
-                // Get the original goal to check if we're increasing the allocation
-                const originalResponse = await fetch(`${API_URL}/${selectedGoalId}`);
-                const originalGoal = await originalResponse.json();
-                
-                // If we're increasing the allocation, check if there's enough frozen funds
-                if (currentAmount > originalGoal.currentAmount) {
-                    const additionalAllocation = currentAmount - originalGoal.currentAmount;
-                    
-                    // Check if there's enough frozen funds available
-                    const walletsResponse = await fetch(WALLETS_API_URL);
-                    const wallets = await walletsResponse.json();
-                    
-                    let totalFrozen = 0;
-                    wallets.forEach(wallet => {
-                        totalFrozen += wallet.frozen || 0;
-                    });
-                    
-                    const goalsResponse = await fetch(API_URL);
-                    const goals = await goalsResponse.json();
-                    
-                    let allocatedToGoals = 0;
-                    goals.forEach(goal => {
-                        if (goal.id !== selectedGoalId) { // Exclude the current goal
-                            allocatedToGoals += goal.currentAmount || 0;
-                        }
-                    });
-                    
-                    allocatedToGoals += originalGoal.currentAmount; // Add the original amount
-                    
-                    const remainingFrozen = totalFrozen - allocatedToGoals;
-                    
-                    if (additionalAllocation > remainingFrozen) {
-                        showNotification('Not enough frozen funds available', 'error');
-                        return;
-                    }
-                }
-
-                await fetch(`${API_URL}/${selectedGoalId}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        name,
-                        targetAmount,
-                        currentAmount,
-                        targetDate,
-                        description,
-                        updatedAt: new Date().toISOString()
-                    }),
-                });
-
-                closeEditModal();
-                fetchGoals();
-                fetchWalletSummary();
-                showNotification('Financial goal updated successfully', 'success');
-            } catch (error) {
-                console.error('Error updating goal:', error);
-                showNotification('Error updating financial goal', 'error');
-            }
-        }
-
-        async function addFundsToGoal() {
-            const amount = parseFloat(document.getElementById("addFundsAmount").value);
-
-            if (isNaN(amount) || amount <= 0) {
-                showNotification('Please enter a valid amount', 'error');
-                return;
-            }
-
-            try {
-                // Check if there's enough frozen funds available
-                const walletsResponse = await fetch(WALLETS_API_URL);
-                const wallets = await walletsResponse.json();
-                
-                let totalFrozen = 0;
-                wallets.forEach(wallet => {
-                    totalFrozen += wallet.frozen || 0;
-                });
-                
-                const goalsResponse = await fetch(API_URL);
-                const goals = await goalsResponse.json();
-                
-                let allocatedToGoals = 0;
-                goals.forEach(goal => {
-                    allocatedToGoals += goal.currentAmount || 0;
-                });
-                
-                const remainingFrozen = totalFrozen - allocatedToGoals;
-                
-                if (amount > remainingFrozen) {
-                    showNotification('Not enough frozen funds available', 'error');
-                    return;
-                }
-
-                // Get the current goal
-                const goalResponse = await fetch(`${API_URL}/${selectedGoalId}`);
-                const goal = await goalResponse.json();
-                
-                // Update the goal with the new amount
-                await fetch(`${API_URL}/${selectedGoalId}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        ...goal,
-                        currentAmount: goal.currentAmount + amount,
-                        updatedAt: new Date().toISOString()
-                    }),
-                });
-
-                closeAddFundsModal();
-                fetchGoals();
-                fetchWalletSummary();
-                showNotification(`Added Rp${amount.toLocaleString('id-ID')} to your goal`, 'success');
-            } catch (error) {
-                console.error('Error adding funds to goal:', error);
-                showNotification('Error adding funds to goal', 'error');
-            }
-        }
-
-        async function confirmDeleteGoal() {
-            try {
-                await fetch(`${API_URL}/${selectedGoalId}`, { method: "DELETE" });
-                closeDeleteModal();
-                fetchGoals();
-                fetchWalletSummary();
-                showNotification('Financial goal deleted successfully', 'success');
-            } catch (error) {
-                console.error('Error deleting goal:', error);
-                showNotification('Error deleting financial goal', 'error');
-            }
-        }
-
-        // Notification function
-        function showNotification(message, type = 'info') {
-            // Remove any existing notifications
-            const existingNotifications = document.querySelectorAll('.notification');
-            existingNotifications.forEach(notification => {
-                notification.remove();
-            });
-
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.className = `notification notification-${type}`;
-
-            // Set icon based on type
-            let icon = '';
-            switch (type) {
-                case 'success':
-                    icon = '<i class="fas fa-check-circle mr-2"></i>';
-                    break;
-                case 'error':
-                    icon = '<i class="fas fa-exclamation-circle mr-2"></i>';
-                    break;
-                case 'warning':
-                    icon = '<i class="fas fa-exclamation-triangle mr-2"></i>';
-                    break;
-                default:
-                    icon = '<i class="fas fa-info-circle mr-2"></i>';
-            }
-
-            notification.innerHTML = `${icon} ${message}`;
-            document.body.appendChild(notification);
-
-            // Remove notification after 3 seconds
-            setTimeout(() => {
-                notification.addEventListener('animationend', () => {
-                    notification.remove();
-                });
-            }, 3000);
-        }
-    </script>
+    <script src="/assets/js/app.js"></script>
+    <script src="/assets/js/goals.js"></script>
 </body>
 
 </html>

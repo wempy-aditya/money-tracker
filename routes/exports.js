@@ -12,9 +12,20 @@ const path = require('path');
 const transactionsCollection = db.collection('transactions');
 const budgetCollection = db.collection('budgets');
 
-router.get('/export/:userId/:month/:format', async (req, res) => {
+const ownerOf = (req) => req.auth.userId;
+
+// Bug #1 fixed. These two routes declared an '/export/...' path while the router
+// is mounted at '/export', making the reachable URL '/export/export/...'. The
+// frontend called '/export/...' and therefore always got a 404, so exports had
+// never worked. The redundant prefix is dropped here.
+router.get('/:userId/:month/:format', async (req, res) => {
   try {
-    const { userId, month, format } = req.params;
+    const { month, format } = req.params;
+    const userId = ownerOf(req);
+
+    if (req.params.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     // Ambil data transaksi berdasarkan userId dan bulan
     const transactionsSnapshot = await transactionsCollection
@@ -74,9 +85,14 @@ router.get('/export/:userId/:month/:format', async (req, res) => {
 });
 
 // Endpoint untuk ekspor data anggaran
-router.get('/export-budget/:userId/:month/:format', async (req, res) => {
+router.get('/budget/:userId/:month/:format', async (req, res) => {
   try {
-    const { userId, month, format } = req.params;
+    const { month, format } = req.params;
+    const userId = ownerOf(req);
+
+    if (req.params.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     // Ambil data anggaran berdasarkan userId dan bulan
     const budgetSnapshot = await budgetCollection

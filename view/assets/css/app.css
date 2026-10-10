@@ -1,0 +1,992 @@
+/*
+ * Design tokens and base layer.
+ *
+ * Both themes are defined here as CSS custom properties and swapped by a single
+ * `data-theme` attribute on <html>. There is exactly one accent colour and one
+ * radius scale, used identically in both themes, so the page never reads as two
+ * different products depending on the mode.
+ *
+ * Colours avoid pure #000 and #fff: off-black and off-white keep depth in dark
+ * mode and avoid glare in light mode. All body text pairs meet WCAG AA.
+ */
+
+:root {
+	color-scheme: light;
+
+	/* Surfaces, from furthest back to closest to the reader. */
+	--surface-page: #f4f5f7;
+	--surface-raised: #ffffff;
+	--surface-sunken: #eceef1;
+	--surface-hover: #f0f2f5;
+
+	/* Text. */
+	--text-primary: #16181d;
+	--text-secondary: #4d5560;
+	--text-muted: #6b7280;
+	--text-inverse: #ffffff;
+
+	/* Accent: one blue, used for primary actions, links and focus.
+	   --accent-surface is the darker variant used only where white text sits on
+	   top of it, so that pairing clears WCAG AA. Light links need the lighter
+	   --accent-text, so the two are deliberately separate tokens. */
+	--accent: #2563eb;
+	--accent-surface: #2563eb;
+	--accent-surface-hover: #1d4ed8;
+	--accent-hover: #1d4ed8;
+	--accent-soft: #e8effd;
+	--accent-text: #1d4ed8;
+
+	/* Semantic money colours. Held separate from the accent so a red balance
+	   never reads as "this button is primary". */
+	--positive: #047857;
+	--positive-soft: #e6f4ef;
+	--negative: #b91c1c;
+	--negative-soft: #fdeaea;
+	/* Same split as the accent: the surface variant is the one that carries
+	   white text, so a danger button stays legible in both themes. */
+	--negative-surface: #b91c1c;
+	--negative-surface-hover: #991b1b;
+	--warning: #b45309;
+	--warning-soft: #fdf2e3;
+
+	/* Lines. */
+	--border: #dfe3e8;
+	--border-strong: #c4cad2;
+
+	/* One radius scale: 10px for surfaces, 8px for controls, full for pills. */
+	--radius-surface: 10px;
+	--radius-control: 8px;
+
+	--shadow-sm: 0 1px 2px rgba(20, 25, 35, 0.06);
+	--shadow-md: 0 2px 8px rgba(20, 25, 35, 0.08);
+	--shadow-lg: 0 12px 32px rgba(20, 25, 35, 0.14);
+
+	--nav-height: 60px;
+	--page-max: 1180px;
+	--ease: cubic-bezier(0.2, 0, 0.15, 1);
+}
+
+[data-theme='dark'] {
+	color-scheme: dark;
+
+	--surface-page: #121419;
+	--surface-raised: #1b1e25;
+	--surface-sunken: #171a20;
+	--surface-hover: #23262f;
+
+	--text-primary: #eef1f5;
+	--text-secondary: #b3bbc7;
+	--text-muted: #8b94a3;
+	--text-inverse: #12141a;
+
+	--accent: #5b8dfb;
+	--accent-surface: #2563eb;
+	--accent-surface-hover: #1d4ed8;
+	--accent-hover: #7ba4fc;
+	--accent-soft: #1c2740;
+	--accent-text: #8fb2fd;
+
+	--positive: #34d399;
+	--positive-soft: #12291f;
+	--negative: #f87171;
+	--negative-soft: #2b1719;
+	--negative-surface: #dc2626;
+	--negative-surface-hover: #b91c1c;
+	--warning: #fbbf24;
+	--warning-soft: #2b2113;
+
+	--border: #2a2e37;
+	--border-strong: #3a3f4a;
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--shadow-md: 0 2px 10px rgba(0, 0, 0, 0.45);
+	--shadow-lg: 0 14px 38px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		color-scheme: dark;
+
+		--surface-page: #121419;
+		--surface-raised: #1b1e25;
+		--surface-sunken: #171a20;
+		--surface-hover: #23262f;
+
+		--text-primary: #eef1f5;
+		--text-secondary: #b3bbc7;
+		--text-muted: #8b94a3;
+		--text-inverse: #12141a;
+
+		--accent: #5b8dfb;
+		--accent-hover: #7ba4fc;
+		--accent-soft: #1c2740;
+		--accent-text: #8fb2fd;
+
+		--positive: #34d399;
+		--positive-soft: #12291f;
+		--negative: #f87171;
+		--negative-soft: #2b1719;
+		--negative-surface: #dc2626;
+		--negative-surface-hover: #b91c1c;
+		--warning: #fbbf24;
+		--warning-soft: #2b2113;
+
+		--accent-surface: #2563eb;
+		--accent-surface-hover: #1d4ed8;
+
+		--border: #2a2e37;
+		--border-strong: #3a3f4a;
+
+		--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+		--shadow-md: 0 2px 10px rgba(0, 0, 0, 0.45);
+		--shadow-lg: 0 14px 38px rgba(0, 0, 0, 0.6);
+	}
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	min-height: 100dvh;
+	background: var(--surface-page);
+	color: var(--text-primary);
+	font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	font-size: 15px;
+	line-height: 1.55;
+	-webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+	margin: 0;
+	font-weight: 650;
+	letter-spacing: -0.015em;
+	line-height: 1.25;
+}
+
+p {
+	margin: 0;
+}
+
+a {
+	color: var(--accent-text);
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+/* Visible focus everywhere. Keyboard users must always be able to see where
+   they are, in both themes. */
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------ layout */
+
+.page {
+	width: 100%;
+	max-width: var(--page-max);
+	margin: 0 auto;
+	padding: 20px 16px 64px;
+}
+
+@media (min-width: 768px) {
+	.page {
+		padding: 28px 24px 80px;
+	}
+}
+
+/* ------------------------------------------------------------------- navbar */
+
+.nav {
+	position: sticky;
+	top: 0;
+	z-index: 40;
+	background: var(--surface-raised);
+	border-bottom: 1px solid var(--border);
+}
+
+.nav__inner {
+	max-width: var(--page-max);
+	margin: 0 auto;
+	padding: 0 16px;
+	height: var(--nav-height);
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+@media (min-width: 768px) {
+	.nav__inner {
+		padding: 0 24px;
+	}
+}
+
+.nav__brand {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	font-weight: 650;
+	color: var(--text-primary);
+	letter-spacing: -0.02em;
+	white-space: nowrap;
+}
+
+.nav__brand:hover {
+	text-decoration: none;
+	color: var(--accent-text);
+}
+
+.nav__mark {
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	border-radius: var(--radius-control);
+	background: var(--accent-surface);
+	color: #fff;
+	font-size: 15px;
+	flex: none;
+}
+
+.nav__links {
+	display: none;
+	margin-left: auto;
+	align-items: center;
+	gap: 2px;
+}
+
+@media (min-width: 900px) {
+	.nav__links {
+		display: flex;
+	}
+}
+
+.nav__link {
+	padding: 7px 11px;
+	border-radius: var(--radius-control);
+	color: var(--text-secondary);
+	font-size: 14px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.nav__link:hover {
+	background: var(--surface-hover);
+	color: var(--text-primary);
+	text-decoration: none;
+}
+
+.nav__link[aria-current='page'] {
+	background: var(--accent-soft);
+	color: var(--accent-text);
+	font-weight: 600;
+}
+
+.nav__actions {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+@media (min-width: 900px) {
+	.nav__actions {
+		margin-left: 10px;
+	}
+}
+
+.nav__toggle {
+	display: grid;
+	place-items: center;
+	width: 38px;
+	height: 38px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-control);
+	background: var(--surface-raised);
+	color: var(--text-primary);
+	cursor: pointer;
+	font-size: 16px;
+}
+
+@media (min-width: 900px) {
+	.nav__toggle {
+		display: none;
+	}
+}
+
+/* Mobile drawer. Slides below the bar rather than covering the page, so the
+   brand and theme toggle stay reachable. */
+.nav__drawer {
+	display: none;
+	border-top: 1px solid var(--border);
+	background: var(--surface-raised);
+	padding: 8px 12px 12px;
+}
+
+.nav__drawer[data-open='true'] {
+	display: block;
+}
+
+.nav__drawer .nav__link {
+	display: block;
+	padding: 11px 12px;
+	font-size: 15px;
+}
+
+.nav__user {
+	margin-left: auto;
+	padding: 0 10px 0 2px;
+	color: var(--text-muted);
+	font-size: 13px;
+	white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ surfaces */
+
+.card {
+	background: var(--surface-raised);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-surface);
+	box-shadow: var(--shadow-sm);
+}
+
+.card__body {
+	padding: 16px;
+}
+
+@media (min-width: 768px) {
+	.card__body {
+		padding: 20px;
+	}
+}
+
+.page-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 18px;
+}
+
+.page-head__text {
+	margin-right: auto;
+}
+
+.page-head h1 {
+	font-size: 22px;
+}
+
+@media (min-width: 768px) {
+	.page-head h1 {
+		font-size: 26px;
+	}
+}
+
+.page-head p {
+	color: var(--text-secondary);
+	font-size: 14px;
+	margin-top: 2px;
+}
+
+/* ------------------------------------------------------------------- buttons */
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	padding: 9px 14px;
+	min-height: 40px;
+	border: 1px solid transparent;
+	border-radius: var(--radius-control);
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.2;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease), transform 0.1s var(--ease);
+}
+
+.btn:active {
+	transform: translateY(1px);
+}
+
+.btn:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.btn--primary {
+	background: var(--accent-surface);
+	color: #fff;
+}
+
+.btn--primary:hover:not(--disabled) {
+	background: var(--accent-surface-hover);
+}
+
+.btn--secondary {
+	background: var(--surface-raised);
+	color: var(--text-primary);
+	border-color: var(--border-strong);
+}
+
+.btn--secondary:hover:not(:disabled) {
+	background: var(--surface-hover);
+}
+
+.btn--danger {
+	background: var(--negative-surface);
+	color: #fff;
+}
+
+.btn--danger:hover:not(:disabled) {
+	background: var(--negative-surface-hover);
+}
+
+.btn--ghost {
+	background: transparent;
+	color: var(--text-secondary);
+}
+
+.btn--ghost:hover:not(:disabled) {
+	background: var(--surface-hover);
+	color: var(--text-primary);
+}
+
+.btn--block {
+	width: 100%;
+}
+
+/* Icon-only control used in table rows and card headers. */
+.icon-btn {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	border: 1px solid transparent;
+	border-radius: var(--radius-control);
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	font-size: 14px;
+	transition: background-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.icon-btn:hover {
+	background: var(--surface-hover);
+	color: var(--text-primary);
+}
+
+.icon-btn--danger:hover {
+	background: var(--negative-soft);
+	color: var(--negative);
+}
+
+/* --------------------------------------------------------------------- forms */
+
+.field {
+	display: block;
+	margin-bottom: 14px;
+}
+
+.field__label {
+	display: block;
+	margin-bottom: 5px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-secondary);
+}
+
+.field__hint {
+	margin-top: 5px;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.field__error {
+	margin-top: 5px;
+	font-size: 13px;
+	color: var(--negative);
+}
+
+.input,
+.select {
+	width: 100%;
+	padding: 9px 11px;
+	min-height: 42px;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-control);
+	background: var(--surface-raised);
+	color: var(--text-primary);
+	font-family: inherit;
+	/* 16px exactly: iOS Safari zooms the page when focusing any input whose
+	   font-size is below 16px, which leaves the user zoomed into a field they
+	   cannot zoom back out of without a double tap. */
+	font-size: 16px;
+	transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.input::placeholder {
+	color: var(--text-muted);
+	opacity: 1;
+}
+
+.input:hover,
+.select:hover {
+	border-color: var(--accent);
+}
+
+.input:focus,
+.select:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.input[aria-invalid='true'] {
+	border-color: var(--negative);
+}
+
+/* -------------------------------------------------------------------- stats */
+
+.stats {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+}
+
+@media (min-width: 720px) {
+	.stats {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+.stat {
+	padding: 13px 14px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-surface);
+	background: var(--surface-raised);
+	min-width: 0;
+}
+
+.stat__label {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.stat__value {
+	margin-top: 3px;
+	font-size: 18px;
+	font-weight: 650;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.02em;
+	overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+	.stat__value {
+		font-size: 21px;
+	}
+}
+
+.stat__sub {
+	margin-top: 2px;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.stat--accent .stat__value {
+	color: var(--accent-text);
+}
+.stat--positive .stat__value {
+	color: var(--positive);
+}
+.stat--negative .stat__value {
+	color: var(--negative);
+}
+.stat--warning .stat__value {
+	color: var(--warning);
+}
+
+/* ------------------------------------------------------------------- tables */
+
+.table-wrap {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+
+.table th {
+	padding: 9px 12px;
+	text-align: left;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+	background: var(--surface-sunken);
+	border-bottom: 1px solid var(--border);
+	white-space: nowrap;
+}
+
+.table td {
+	padding: 11px 12px;
+	border-bottom: 1px solid var(--border);
+	vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.table tbody tr:hover {
+	background: var(--surface-hover);
+}
+
+.table__num {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.table__actions {
+	display: flex;
+	gap: 2px;
+	justify-content: flex-end;
+}
+
+/* --------------------------------------------------------------------- misc */
+
+.badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+	background: var(--surface-sunken);
+	color: var(--text-secondary);
+	white-space: nowrap;
+}
+
+.badge--positive {
+	background: var(--positive-soft);
+	color: var(--positive);
+}
+.badge--negative {
+	background: var(--negative-soft);
+	color: var(--negative);
+}
+.badge--warning {
+	background: var(--warning-soft);
+	color: var(--warning);
+}
+.badge--accent {
+	background: var(--accent-soft);
+	color: var(--accent-text);
+}
+
+/* Empty and loading states. Both are sized so the layout does not jump when
+   data arrives. */
+.empty {
+	padding: 36px 20px;
+	text-align: center;
+	color: var(--text-muted);
+}
+
+.empty__title {
+	color: var(--text-primary);
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.skeleton {
+	height: 14px;
+	border-radius: 4px;
+	background: linear-gradient(90deg, var(--surface-sunken) 25%, var(--surface-hover) 50%, var(--surface-sunken) 75%);
+	background-size: 200% 100%;
+	animation: skeleton 1.3s linear infinite;
+}
+
+@keyframes skeleton {
+	from {
+		background-position: 200% 0;
+	}
+	to {
+		background-position: -200% 0;
+	}
+}
+
+.toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 14px;
+}
+
+.toolbar .input,
+.toolbar .select {
+	width: auto;
+	min-width: 150px;
+	flex: 1 1 150px;
+}
+
+.divider {
+	height: 1px;
+	background: var(--border);
+	border: 0;
+	margin: 18px 0;
+}
+
+/* Toast notifications for transient feedback. */
+.toast-host {
+	position: fixed;
+	left: 50%;
+	bottom: 20px;
+	transform: translateX(-50%);
+	z-index: 60;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: min(420px, calc(100vw - 32px));
+	pointer-events: none;
+}
+
+.toast {
+	padding: 11px 14px;
+	border-radius: var(--radius-control);
+	background: var(--surface-raised);
+	border: 1px solid var(--border);
+	box-shadow: var(--shadow-lg);
+	color: var(--text-primary);
+	font-size: 14px;
+	animation: toast-in 0.2s var(--ease);
+}
+
+.toast--error {
+	border-color: var(--negative);
+	color: var(--negative);
+}
+
+.toast--success {
+	border-color: var(--positive);
+	color: var(--positive);
+}
+
+@keyframes toast-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* ------------------------------------------------------------------- modal */
+
+.modal {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	display: none;
+	align-items: flex-end;
+	justify-content: center;
+	padding: 0;
+	background: rgba(10, 12, 16, 0.55);
+}
+
+.modal[data-open='true'] {
+	display: flex;
+}
+
+@media (min-width: 640px) {
+	.modal {
+		align-items: center;
+		padding: 24px;
+	}
+}
+
+.modal__panel {
+	width: 100%;
+	max-width: 460px;
+	max-height: 92dvh;
+	overflow-y: auto;
+	background: var(--surface-raised);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-surface) var(--radius-surface) 0 0;
+	box-shadow: var(--shadow-lg);
+	padding: 18px;
+}
+
+@media (min-width: 640px) {
+	.modal__panel {
+		border-radius: var(--radius-surface);
+		padding: 22px;
+	}
+}
+
+.modal__title {
+	font-size: 18px;
+	margin-bottom: 4px;
+}
+
+.modal__desc {
+	color: var(--text-secondary);
+	font-size: 14px;
+	margin-bottom: 16px;
+}
+
+.modal__actions {
+	display: flex;
+	flex-direction: column-reverse;
+	gap: 8px;
+	margin-top: 18px;
+}
+
+@media (min-width: 480px) {
+	.modal__actions {
+		flex-direction: row;
+		justify-content: flex-end;
+	}
+}
+
+/* --------------------------------------------------------------- utilities */
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.stack > * + * {
+	margin-top: 12px;
+}
+
+.grid-2 {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+	.grid-2 {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.grid-auto {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: 1fr;
+}
+
+@media (min-width: 700px) {
+	.grid-auto {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 1080px) {
+	.grid-auto {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+.text-muted {
+	color: var(--text-muted);
+}
+.text-secondary {
+	color: var(--text-secondary);
+}
+.text-positive {
+	color: var(--positive);
+}
+.text-negative {
+	color: var(--negative);
+}
+.text-right {
+	text-align: right;
+}
+.mt-0 { margin-top: 0; }
+.mb-16 { margin-bottom: 16px; }
+
+.chart {
+	width: 100%;
+	height: 210px;
+	display: block;
+}
+
+@media (min-width: 768px) {
+	.chart {
+		height: 260px;
+	}
+}
+
+.progress {
+	height: 6px;
+	border-radius: 999px;
+	background: var(--surface-sunken);
+	overflow: hidden;
+	min-width: 70px;
+}
+
+.progress__fill {
+	height: 100%;
+	border-radius: 999px;
+	background: var(--positive);
+}
+
+.progress__fill--warning {
+	background: var(--warning);
+}
+
+.progress__fill--negative {
+	background: var(--negative);
+}
+
+/* Respect the OS setting. Without this, the skeleton shimmer and toast entry
+   keep animating for users who asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+		scroll-behavior: auto !important;
+	}
+}

@@ -1,617 +1,228 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Money Tracker - Transactions</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transaksi - Daily Money Tracker</title>
+    <script>
+        try {
+            var stored = localStorage.getItem('money-tracker-theme');
+            if (stored === 'light' || stored === 'dark') {
+                document.documentElement.setAttribute('data-theme', stored);
+            }
+        } catch (error) { /* Ignore. */ }
+    </script>
+    <link rel="stylesheet" href="/assets/css/app.css" />
     <style>
-        @media (max-width: 768px) {
-            .responsive-grid {
-                grid-template-columns: 1fr;
-            }
-            .responsive-flex {
-                flex-direction: column;
-            }
-            .responsive-flex > * {
-                margin-bottom: 0.5rem;
-                width: 100%;
-            }
+        .type-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 4px;
+            border-radius: var(--radius-control);
+            background: var(--surface-sunken);
+            margin-bottom: 14px;
+        }
+
+        .type-toggle__btn {
+            padding: 8px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .type-toggle__btn[aria-pressed='true'] {
+            background: var(--surface-raised);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .type-toggle__btn[data-type='expense'][aria-pressed='true'] {
+            color: var(--negative);
+        }
+
+        .type-toggle__btn[data-type='income'][aria-pressed='true'] {
+            color: var(--positive);
+        }
+
+        .trx-amount--expense {
+            color: var(--negative);
+        }
+
+        .trx-amount--income {
+            color: var(--positive);
+        }
+
+        .group-head td {
+            background: var(--surface-sunken);
+            font-size: 12px;
+            font-weight: 650;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-muted);
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Navbar -->
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <a href="/" class="flex-shrink-0 flex items-center">
-                        <i class="fas fa-wallet text-blue-500 text-2xl mr-2"></i>
-                        <span class="text-xl font-bold text-gray-800">Daily Money Tracker</span>
-                    </a>
-                </div>
-                <div class="hidden md:flex items-center space-x-4">
-                    <a href="/home" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                        <i class="fas fa-home mr-1"></i> Dashboard
-                    </a>
-                    <a href="/wallet" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                        <i class="fas fa-wallet mr-1"></i> Wallets
-                    </a>
-                    <a href="/budget" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                        <i class="fas fa-chart-pie mr-1"></i> Budget
-                    </a>
-                    <a href="/transactions" class="px-3 py-2 rounded-md text-sm font-medium text-blue-600 bg-blue-50">
-                        <i class="fas fa-exchange-alt mr-1"></i> Transactions
-                    </a>
-                    <a href="/goals" class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                        <i class="fas fa-bullseye mr-1"></i> Financial Goals
-                    </a>
-                </div>
-                <div class="md:hidden flex items-center">
-                    <button id="mobile-menu-button" class="text-gray-600 hover:text-blue-600 focus:outline-none">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                </div>
+
+<body>
+    <nav class="nav">
+        <div class="nav__inner">
+            <a class="nav__brand" href="/home">
+                <span class="nav__mark" aria-hidden="true">Rp</span>
+                <span>Money Tracker</span>
+            </a>
+            <div class="nav__links">
+                <a class="nav__link" href="/home">Dashboard</a>
+                <a class="nav__link" href="/wallet">Dompet</a>
+                <a class="nav__link" href="/transactions">Transaksi</a>
+                <a class="nav__link" href="/budget">Anggaran</a>
+                <a class="nav__link" href="/goals">Target</a>
+            </div>
+            <div class="nav__actions">
+                <span class="nav__user" id="currentUser"></span>
+                <button class="icon-btn" type="button" data-theme-toggle aria-label="Ganti tema">&#9681;</button>
+                <button class="icon-btn" type="button" data-sign-out aria-label="Keluar" title="Keluar">&#9099;</button>
+                <button class="nav__toggle" type="button" data-nav-toggle aria-expanded="false"
+                    aria-label="Buka menu">&#9776;</button>
             </div>
         </div>
-        <!-- Mobile menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
-            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="/home" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                    <i class="fas fa-home mr-1"></i> Dashboard
-                </a>
-                <a href="/wallet" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                    <i class="fas fa-wallet mr-1"></i> Wallets
-                </a>
-                <a href="/budget" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                    <i class="fas fa-chart-pie mr-1"></i> Budget
-                </a>
-                <a href="/transactions" class="block px-3 py-2 rounded-md text-base font-medium text-blue-600 bg-blue-50">
-                    <i class="fas fa-exchange-alt mr-1"></i> Transactions
-                </a>
-                <a href="/goals" class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50">
-                    <i class="fas fa-bullseye mr-1"></i> Financial Goals
-                </a>
-            </div>
+        <div class="nav__drawer" data-nav-drawer data-open="false">
+            <a class="nav__link" href="/home">Dashboard</a>
+            <a class="nav__link" href="/wallet">Dompet</a>
+            <a class="nav__link" href="/transactions">Transaksi</a>
+            <a class="nav__link" href="/budget">Anggaran</a>
+            <a class="nav__link" href="/goals">Target</a>
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <!-- Header Section -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <div class="flex responsive-flex items-center justify-between mb-6">
-                <h1 class="text-3xl font-bold text-gray-800 mb-4 md:mb-0">
-                    <i class="fas fa-wallet text-blue-500 mr-2"></i>
-                    Daily Money Tracker
-                </h1>
-                <div class="flex responsive-flex space-x-0 md:space-x-4 space-y-2 md:space-y-0 w-full md:w-auto">
-                    <div class="relative w-full md:w-auto">
-                        <input type="text" id="userId" 
-                            class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all w-full"
-                            placeholder="User ID">
-                        <i class="fas fa-user absolute left-3 top-3 text-gray-400"></i>
+    <main class="page">
+        <div class="page-head">
+            <div class="page-head__text">
+                <h1>Transaksi</h1>
+                <p>Semua pemasukan dan pengeluaran, dikelompokkan per tanggal.</p>
+            </div>
+            <div class="toolbar" style="margin:0">
+                <input class="input" type="month" id="month" aria-label="Pilih bulan" />
+                <button class="btn btn--secondary" type="button" id="exportButton" onclick="exportData()">Ekspor</button>
+                <select class="select" id="exportDropdown" style="display:none" aria-label="Format ekspor"></select>
+            </div>
+        </div>
+
+        <div class="card mb-16">
+            <div class="card__body">
+                <div class="stats">
+                    <div class="stat stat--positive">
+                        <div class="stat__label">Pemasukan</div>
+                        <div class="stat__value" id="totalIncome">Rp0</div>
                     </div>
-                    <div class="relative w-full md:w-auto">
-                        <input type="month" id="month" 
-                            class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all w-full">
-                        <i class="fas fa-calendar absolute left-3 top-3 text-gray-400"></i>
+                    <div class="stat stat--negative">
+                        <div class="stat__label">Pengeluaran</div>
+                        <div class="stat__value" id="totalExpense">Rp0</div>
                     </div>
-                    <button onclick="loadTransactions()" 
-                        class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 w-full md:w-auto">
-                        <i class="fas fa-sync-alt"></i>
-                        <span>Refresh</span>
-                    </button>
-                    <div class="relative inline-block w-full md:w-auto">
-                        <button id="exportButton" 
-                            class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 w-full">
-                            <i class="fas fa-file-export"></i>
-                            <span>Export</span>
-                        </button>
-                        <div id="exportDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10">
-                            <div class="py-1">
-                                <button onclick="exportData('json')" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center">
-                                    <i class="fas fa-file-code text-blue-500 mr-2"></i> Export as JSON
-                                </button>
-                                <button onclick="exportData('csv')" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center">
-                                    <i class="fas fa-file-csv text-green-500 mr-2"></i> Export as CSV
-                                </button>
-                                <button onclick="exportData('xlsx')" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center">
-                                    <i class="fas fa-file-excel text-green-700 mr-2"></i> Export as Excel
-                                </button>
-                            </div>
-                        </div>
+                    <div class="stat stat--accent">
+                        <div class="stat__label">Selisih</div>
+                        <div class="stat__value" id="netAmount">Rp0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat__label">Jumlah transaksi</div>
+                        <div class="stat__value" id="transactionCount">0</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Transaction Form -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">
-                    <i class="fas fa-plus-circle text-green-500 mr-2"></i>
-                    Add Transaction
-                </h2>
-                <form id="transaction-form" class="space-y-4">
-                    <input type="hidden" id="userId" value="user123">
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 responsive-grid">
-                        <div class="relative">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                            <input type="date" id="date" 
-                                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <i class="fas fa-calendar absolute left-3 top-9 text-gray-400"></i>
-                        </div>
-                        
-                        <div class="relative">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                            <input type="number" id="amount" 
-                                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Enter amount">
-                            <i class="fas fa-dollar-sign absolute left-3 top-9 text-gray-400"></i>
-                        </div>
-                    </div>
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Kategori</th>
+                        <th>Keterangan</th>
+                        <th class="table__num">Jumlah</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="transactionList">
+                    <tr>
+                        <td colspan="5" class="text-muted">Memuat...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 responsive-grid">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                            <select id="type" 
-                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                <option value="income">Income</option>
-                                <option value="expense">Expense</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Wallet</label>
-                            <select id="walletId" 
-                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                <option value="">Select Wallet</option>
-                            </select>
-                        </div>
-                    </div>
+    <!-- Tambah / edit transaksi -->
+    <div class="modal" id="transactionModal">
+        <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="transactionModalTitle">
+            <h2 class="modal__title" id="transactionModalTitle">Tambah transaksi</h2>
+            <p class="modal__desc" id="transactionModalDesc">Saldo dompet diperbarui otomatis.</p>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 responsive-grid">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                            <select id="category" 
-                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                <option value="">Select Category</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Subcategory</label>
-                            <select id="subcategory" 
-                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                <option value="">Select Subcategory</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea id="description" 
-                            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            rows="2" placeholder="Enter description"></textarea>
-                    </div>
-
-                    <div class="flex responsive-flex justify-end space-x-0 md:space-x-4 space-y-2 md:space-y-0">
-                        <button type="submit" id="btnAddData" 
-                            class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 w-full md:w-auto">
-                            <i class="fas fa-plus"></i>
-                            <span>Add Transaction</span>
-                        </button>
-                        <div id="btnUpdateData" class="w-full md:w-auto"></div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Transaction List -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">
-                    <i class="fas fa-list text-purple-500 mr-2"></i>
-                    Transaction List
-                </h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="bg-gray-50">
-                                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Date</th>
-                                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Details</th>
-                            </tr>
-                        </thead>
-                        <tbody id="transaction-list" class="divide-y divide-gray-200"></tbody>
-                    </table>
+            <form id="transactionForm">
+                <div class="type-toggle" role="group" aria-label="Jenis transaksi">
+                    <button class="type-toggle__btn" type="button" data-type="expense" aria-pressed="true">
+                        Pengeluaran
+                    </button>
+                    <button class="type-toggle__btn" type="button" data-type="income" aria-pressed="false">
+                        Pemasukan
+                    </button>
                 </div>
+
+                <div class="field">
+                    <label class="field__label" for="date">Tanggal</label>
+                    <input class="input" type="date" id="date" required />
+                </div>
+                <div class="field">
+                    <label class="field__label" for="amount">Jumlah (Rp)</label>
+                    <input class="input" type="number" id="amount" inputmode="numeric" step="1" min="1" required />
+                </div>
+                <div class="field">
+                    <label class="field__label" for="walletId">Dompet</label>
+                    <select class="select" id="walletId" required></select>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="category">Kategori</label>
+                    <input class="input" type="text" id="category" list="categoryOptions" placeholder="Contoh: Makan"
+                        required />
+                    <datalist id="categoryOptions"></datalist>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="subcategory">Subkategori</label>
+                    <input class="input" type="text" id="subcategory" list="subcategoryOptions"
+                        placeholder="Contoh: Belanja" />
+                    <datalist id="subcategoryOptions"></datalist>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="description">Keterangan</label>
+                    <input class="input" type="text" id="description" placeholder="Opsional" />
+                </div>
+
+                <div class="modal__actions">
+                    <button class="btn btn--secondary" type="button" onclick="closeModal()">Batal</button>
+                    <button class="btn btn--primary" type="submit" id="submitButton">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Konfirmasi hapus -->
+    <div class="modal" id="deleteModal">
+        <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+            <h2 class="modal__title" id="deleteModalTitle">Hapus transaksi</h2>
+            <p class="modal__desc" id="deleteDescription">Saldo dompet dan anggaran akan dikembalikan.</p>
+            <div class="modal__actions">
+                <button class="btn btn--secondary" type="button" onclick="closeDeleteModal()">Batal</button>
+                <button class="btn btn--danger" type="button" onclick="confirmDelete()">Hapus</button>
             </div>
         </div>
     </div>
 
-    <script>
-        const API_URL = 'http://localhost:5000/api/transactions';
-        const userIdInput = "user123";
-        const monthInput = getCurrentMonth();
-        let editingTransactionId = null;
-
-        function getCurrentMonth() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            return `${year}-${month}`;
-        }
-        
-        const userIdInputColumn = document.getElementById('userId');
-        const monthInputColumn = document.getElementById('month');
-
-        document.addEventListener("DOMContentLoaded", async () => {
-            if (!userIdInputColumn.value) {
-                userIdInputColumn.value = userIdInput;
-            }
-            
-            if (!monthInputColumn.value) {
-                monthInputColumn.value = monthInput;
-            }
-
-            await loadWallets();
-            await loadCategories();
-            await loadTransactions();
-
-            // Add animation classes for form inputs
-            document.querySelectorAll('input, select, textarea').forEach(element => {
-                element.addEventListener('focus', () => {
-                    element.classList.add('scale-105');
-                    element.style.transition = 'all 0.2s ease';
-                });
-                element.addEventListener('blur', () => {
-                    element.classList.remove('scale-105');
-                });
-            });
-        });
-
-        document.getElementById('transaction-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const data = {
-                userId: document.getElementById('userId').value,
-                date: document.getElementById('date').value,
-                amount: parseFloat(document.getElementById('amount').value),
-                type: document.getElementById('type').value,
-                category: document.getElementById('category').value,
-                subcategory: document.getElementById('subcategory').value,
-                walletId: document.getElementById('walletId').value,
-                description: document.getElementById('description').value
-            };
-            
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    showNotification("Transaction added successfully!", "success");
-                    this.reset();
-                    loadTransactions();
-                } else {
-                    showNotification("Error: " + result.error, "error");
-                }
-            } catch (error) {
-                showNotification("Error: " + error.message, "error");
-            }
-        });
-
-        async function loadTransactions() {
-            try {
-                const response = await fetch(`${API_URL}/${userIdInputColumn.value}/${monthInputColumn.value}`);
-                const transactions = await response.json();
-                const groupedTransactions = {};
-                
-                transactions.forEach(trx => {
-                    if (!groupedTransactions[trx.date]) {
-                        groupedTransactions[trx.date] = [];
-                    }
-                    const typeColor = trx.type === 'income' ? 'text-green-500' : 'text-red-500';
-                    groupedTransactions[trx.date].push(`
-                        <div class="flex items-center justify-between py-2">
-                            <div>
-                                <span class="font-medium">${trx.category}</span>
-                                <span class="text-sm text-gray-500">(${trx.subcategory})</span>
-                                <p class="text-sm text-gray-600">${trx.description}</p>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <span class="font-medium ${typeColor}">${trx.type === 'income' ? '+' : '-'}${trx.amount}</span>
-                                <div class="flex space-x-2">
-                                    <button onclick="editTransaction('${trx.id}')" 
-                                        class="text-blue-500 hover:text-blue-600">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button onclick="deleteTransaction('${trx.id}')" 
-                                        class="text-red-500 hover:text-red-600">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `);
-                });
-                
-                const list = document.getElementById('transaction-list');
-                list.innerHTML = '';
-                
-                Object.entries(groupedTransactions).forEach(([date, trxList]) => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">${formatDate(date)}</div>
-                        </td>
-                        <td class="px-4 py-3">
-                            <div class="divide-y divide-gray-200">
-                                ${trxList.join('')}
-                            </div>
-                        </td>
-                    `;
-                    list.appendChild(row);
-                });
-            } catch (error) {
-                showNotification("Error loading transactions: " + error.message, "error");
-            }
-        }
-
-        function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { 
-                weekday: 'short', 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-            });
-        }
-
-        function editTransaction(id) {
-            document.getElementById("btnAddData").style.display = "none";
-            document.getElementById("btnUpdateData").innerHTML = `
-                <button onclick="updateData('${id}')" 
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center space-x-2">
-                    <i class="fas fa-save"></i>
-                    <span>Update Transaction</span>
-                </button>
-            `;
-            
-            fetch(`${API_URL}/detail/${id}`)
-                .then(response => response.json())
-                .then(transaction => {
-                    document.getElementById("date").value = transaction.date;
-                    document.getElementById("type").value = transaction.type;
-                    document.getElementById("category").value = transaction.category;
-                    document.getElementById("subcategory").value = transaction.subcategory;
-                    document.getElementById("description").value = transaction.description;
-                    document.getElementById("walletId").value = transaction.walletId;
-                    document.getElementById("amount").value = transaction.amount;
-                    editingTransactionId = id;
-                })
-                .catch(error => showNotification("Error loading transaction details: " + error.message, "error"));
-        }
-
-        async function updateData(editingTransactionId) {
-            const data = {
-                date: document.getElementById('date').value,
-                amount: parseFloat(document.getElementById('amount').value),
-                type: document.getElementById('type').value,
-                category: document.getElementById('category').value,
-                subcategory: document.getElementById('subcategory').value,
-                walletId: document.getElementById('walletId').value,
-                description: document.getElementById('description').value
-            };
-            
-            try {
-                const response = await fetch(`${API_URL}/${editingTransactionId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    showNotification("Transaction updated successfully!", "success");
-                    document.getElementById("transaction-form").reset();
-                    loadTransactions();
-                    document.getElementById("btnAddData").style.display = "block";
-                    document.getElementById("btnUpdateData").innerHTML = "";
-                } else {
-                    showNotification("Error: " + result.error, "error");
-                }
-            } catch (error) {
-                showNotification("Error updating transaction: " + error.message, "error");
-            }
-        }
-
-        function deleteTransaction(id) {
-            showConfirmDialog(
-                "Delete Transaction",
-                "Are you sure you want to delete this transaction?",
-                async () => {
-                    try {
-                        const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-                        if (response.ok) {
-                            showNotification("Transaction deleted successfully!", "success");
-                            loadTransactions();
-                        } else {
-                            showNotification("Error deleting transaction", "error");
-                        }
-                    } catch (error) {
-                        showNotification("Error: " + error.message, "error");
-                    }
-                }
-            );
-        }
-
-        async function loadWallets() {
-            const walletSelect = document.getElementById("walletId");
-            try {
-                const response = await fetch("http://localhost:5000/api/wallets");
-                const wallets = await response.json();
-                wallets.forEach(wallet => {
-                    let option = document.createElement("option");
-                    option.value = wallet.id;
-                    option.textContent = wallet.name;
-                    walletSelect.appendChild(option);
-                });
-            } catch (error) {
-                showNotification("Error loading wallets: " + error.message, "error");
-            }
-        }
-
-        async function loadCategories() {
-            const categorySelect = document.getElementById("category");
-            const subcategorySelect = document.getElementById("subcategory");
-            try {
-                const response = await fetch(`http://localhost:5000/api/budgeting/${userIdInput}/${monthInput}`);
-                const data = await response.json();
-                data.categories.forEach(category => {
-                    let option = document.createElement("option");
-                    option.value = category.name;
-                    option.textContent = category.name;
-                    categorySelect.appendChild(option);
-                });
-                
-                categorySelect.addEventListener("change", function() {
-                    subcategorySelect.innerHTML = '<option value="">Select Subcategory</option>';
-                    const selectedCategory = categorySelect.value;
-                    const categoryData = data.categories.find(cat => cat.name === selectedCategory);
-                    if (categoryData) {
-                        categoryData.subcategories.forEach(subcategory => {
-                            let subOption = document.createElement("option");
-                            subOption.value = subcategory.name;
-                            subOption.textContent = subcategory.name;
-                            subcategorySelect.appendChild(subOption);
-                        });
-                    }
-                });
-            } catch (error) {
-                showNotification("Error loading categories: " + error.message, "error");
-            }
-        }
-
-        // Utility Functions for UI Enhancement
-        function showNotification(message, type = "info") {
-            const notification = document.createElement("div");
-            notification.className = `fixed top-20 right-4 p-4 rounded-lg shadow-lg text-white transform transition-all duration-500 translate-y-0 opacity-100 ${
-                type === "success" ? "bg-green-500" : 
-                type === "error" ? "bg-red-500" : 
-                "bg-blue-500"
-            } z-[60]`;  // z-index lebih tinggi dan posisi top di bawah navbar
-            notification.innerHTML = `
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-${
-                        type === "success" ? "check-circle" : 
-                        type === "error" ? "exclamation-circle" : 
-                        "info-circle"
-                    }"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-            document.body.appendChild(notification);
-
-            // Animate out and remove
-            setTimeout(() => {
-                notification.classList.add("translate-y-2", "opacity-0");
-                setTimeout(() => notification.remove(), 500);
-            }, 3000);
-        }
-
-        function showConfirmDialog(title, message, onConfirm) {
-            const dialog = document.createElement("div");
-            dialog.className = "fixed inset-0 flex items-center justify-center z-50";
-            dialog.innerHTML = `
-                <div class="fixed inset-0 bg-black opacity-50"></div>
-                <div class="bg-white rounded-lg p-6 max-w-sm mx-4 z-10 shadow-xl">
-                    <h3 class="text-lg font-bold mb-2">${title}</h3>
-                    <p class="text-gray-600 mb-6">${message}</p>
-                    <div class="flex justify-end space-x-4">
-                        <button class="px-4 py-2 text-gray-600 hover:text-gray-800" onclick="this.closest('.fixed').remove()">
-                            Cancel
-                        </button>
-                        <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" id="confirmBtn">
-                            Confirm
-                        </button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(dialog);
-            
-            document.getElementById("confirmBtn").addEventListener("click", () => {
-                onConfirm();
-                dialog.remove();
-            });
-        }
-
-        // Mobile menu and Export functionality
-        document.addEventListener("DOMContentLoaded", function() {
-            // Mobile menu toggle
-            const mobileMenuButton = document.getElementById("mobile-menu-button");
-            const mobileMenu = document.getElementById("mobile-menu");
-            
-            if (mobileMenuButton && mobileMenu) {
-                mobileMenuButton.addEventListener("click", function() {
-                    mobileMenu.classList.toggle("hidden");
-                });
-                
-                // Close mobile menu when clicking outside
-                document.addEventListener("click", function(e) {
-                    if (!mobileMenuButton.contains(e.target) && !mobileMenu.contains(e.target)) {
-                        mobileMenu.classList.add("hidden");
-                    }
-                });
-            }
-            
-            // Export dropdown functionality
-            const exportButton = document.getElementById("exportButton");
-            const exportDropdown = document.getElementById("exportDropdown");
-            
-            if (exportButton && exportDropdown) {
-                exportButton.addEventListener("click", function(e) {
-                    e.stopPropagation();
-                    exportDropdown.classList.toggle("hidden");
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener("click", function(e) {
-                    if (!exportButton.contains(e.target) && !exportDropdown.contains(e.target)) {
-                        exportDropdown.classList.add("hidden");
-                    }
-                });
-            }
-        });
-        
-        function exportData(format) {
-            const userId = document.getElementById("userId").value;
-            const month = document.getElementById("month").value;
-            
-            if (!userId || !month) {
-                showNotification("Please enter User ID and select a month", "error");
-                return;
-            }
-            
-            // Create the export URL
-            const exportUrl = `http://localhost:5000/export/${userId}/${month}/${format}`;
-            
-            // Create a temporary link and trigger download
-            const link = document.createElement("a");
-            link.href = exportUrl;
-            link.target = "_blank";
-            link.download = `transactions_${month}.${format}`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Hide dropdown after export
-            document.getElementById("exportDropdown").classList.add("hidden");
-            
-            showNotification(`Exporting data as ${format.toUpperCase()}...`, "success");
-        }
-    </script>
+    <script src="/assets/js/app.js"></script>
+    <script src="/assets/js/transactions.js"></script>
 </body>
+
 </html>

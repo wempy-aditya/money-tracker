@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Masuk - Daily Money Tracker</title>
+    <script>
+        // Applied before first paint so the page never flashes the wrong theme.
+        try {
+            var stored = localStorage.getItem('money-tracker-theme');
+            if (stored === 'light' || stored === 'dark') {
+                document.documentElement.setAttribute('data-theme', stored);
+            }
+        } catch (error) { /* Private browsing: fall back to the system theme. */ }
+    </script>
+    <link rel="stylesheet" href="/assets/css/app.css" />
+    <style>
+        body {
+            display: grid;
+            place-items: center;
+            padding: 24px 16px;
+        }
+
+        .auth {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth__head {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .auth__mark {
+            display: grid;
+            place-items: center;
+            width: 46px;
+            height: 46px;
+            margin: 0 auto 12px;
+            border-radius: var(--radius-control);
+            background: var(--accent-surface);
+            color: #fff;
+            font-size: 22px;
+        }
+
+        .auth h1 {
+            font-size: 21px;
+        }
+
+        .auth__sub {
+            margin-top: 4px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .auth__tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 4px;
+            margin-bottom: 18px;
+            border-radius: var(--radius-control);
+            background: var(--surface-sunken);
+        }
+
+        .auth__tab {
+            padding: 8px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .auth__tab[aria-selected='true'] {
+            background: var(--surface-raised);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .auth__foot {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <main class="auth">
+        <div class="auth__head">
+            <div class="auth__mark" aria-hidden="true">Rp</div>
+            <h1>Daily Money Tracker</h1>
+            <p class="auth__sub">Catat pemasukan, pengeluaran, dan anggaran Anda.</p>
+        </div>
+
+        <div class="card">
+            <div class="card__body">
+                <div class="auth__tabs" role="tablist">
+                    <button class="auth__tab" id="tab-login" role="tab" aria-selected="true" aria-controls="form-login">
+                        Masuk
+                    </button>
+                    <button class="auth__tab" id="tab-register" role="tab" aria-selected="false"
+                        aria-controls="form-register">
+                        Daftar
+                    </button>
+                </div>
+
+                <p id="notice" class="field__error mb-16" role="alert" hidden></p>
+
+                <form id="form-login" role="tabpanel" aria-labelledby="tab-login">
+                    <div class="field">
+                        <label class="field__label" for="login-username">Username</label>
+                        <input class="input" type="text" id="login-username" name="username" autocomplete="username"
+                            autocapitalize="none" spellcheck="false" required />
+                    </div>
+                    <div class="field">
+                        <label class="field__label" for="login-password">Password</label>
+                        <input class="input" type="password" id="login-password" name="password"
+                            autocomplete="current-password" required />
+                    </div>
+                    <button class="btn btn--primary btn--block" type="submit">Masuk</button>
+                </form>
+
+                <form id="form-register" role="tabpanel" aria-labelledby="tab-register" hidden>
+                    <div class="field">
+                        <label class="field__label" for="register-username">Username</label>
+                        <input class="input" type="text" id="register-username" name="username" autocomplete="username"
+                            autocapitalize="none" spellcheck="false" required />
+                        <p class="field__hint">3-32 karakter: huruf, angka, titik, strip, atau garis bawah.</p>
+                    </div>
+                    <div class="field">
+                        <label class="field__label" for="register-password">Password</label>
+                        <input class="input" type="password" id="register-password" name="password"
+                            autocomplete="new-password" required />
+                        <p class="field__hint">Minimal 8 karakter.</p>
+                    </div>
+                    <button class="btn btn--primary btn--block" type="submit">Buat akun</button>
+                </form>
+            </div>
+        </div>
+
+        <p class="auth__foot">
+            Data tersimpan lokal di perangkat ini. <button class="btn btn--ghost" type="button"
+                data-theme-toggle style="min-height:auto;padding:2px 6px">Ganti tema</button>
+        </p>
+    </main>
+
+    <script src="/assets/js/app.js"></script>
+    <script>
+        (function () {
+            'use strict';
+
+            var notice = document.getElementById('notice');
+
+            function showNotice(message) {
+                notice.textContent = message;
+                notice.hidden = false;
+            }
+
+            function clearNotice() {
+                notice.hidden = true;
+                notice.textContent = '';
+            }
+
+            // Tab switching
+            var tabLogin = document.getElementById('tab-login');
+            var tabRegister = document.getElementById('tab-register');
+            var formLogin = document.getElementById('form-login');
+            var formRegister = document.getElementById('form-register');
+
+            function selectTab(which) {
+                var loginActive = which === 'login';
+                tabLogin.setAttribute('aria-selected', String(loginActive));
+                tabRegister.setAttribute('aria-selected', String(!loginActive));
+                formLogin.hidden = !loginActive;
+                formRegister.hidden = loginActive;
+                clearNotice();
+            }
+
+            tabLogin.addEventListener('click', function () { selectTab('login'); });
+            tabRegister.addEventListener('click', function () { selectTab('register'); });
+
+            if (new URLSearchParams(window.location.search).get('registered')) {
+                selectTab('login');
+                document.getElementById('login-username').value =
+                    new URLSearchParams(window.location.search).get('registered') || '';
+            }
+
+            if (new URLSearchParams(window.location.search).get('expired')) {
+                showNotice('Sesi Anda berakhir. Silakan masuk lagi.');
+            }
+
+            // Anonymous calls must not trigger the redirect inside App.api.
+            var options = { allowUnauthenticated: true };
+
+            formLogin.addEventListener('submit', function (event) {
+                event.preventDefault();
+                clearNotice();
+                var button = formLogin.querySelector('button[type=submit]');
+                button.disabled = true;
+
+                App.api('/api/auth/login', Object.assign({}, options, {
+                    method: 'POST',
+                    body: {
+                        username: document.getElementById('login-username').value,
+                        password: document.getElementById('login-password').value
+                    }
+                })).then(function () {
+                    window.location.href = '/home';
+                }).catch(function (error) {
+                    showNotice(error.message);
+                    button.disabled = false;
+                });
+            });
+
+            formRegister.addEventListener('submit', function (event) {
+                event.preventDefault();
+                clearNotice();
+                var button = formRegister.querySelector('button[type=submit]');
+                button.disabled = true;
+
+                var username = document.getElementById('register-username').value;
+
+                App.api('/api/auth/register', Object.assign({}, options, {
+                    method: 'POST',
+                    body: {
+                        username: username,
+                        password: document.getElementById('register-password').value
+                    }
+                })).then(function () {
+                    window.location.href = '/home';
+                }).catch(function (error) {
+                    showNotice(error.message);
+                    button.disabled = false;
+                });
+            });
+        })();
+    </script>
+</body>
+
+</html>

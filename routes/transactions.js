@@ -7,89 +7,91 @@ const transactionsCollection = db.collection('transactions');
 const walletsCollection = db.collection('wallets');
 const budgetsCollection = db.collection('budgets');
 
+const ownerOf = (req) => req.auth.userId;
+
+/**
+ * Adjust a budget's subcategory `used` counter by a delta, clamped at zero.
+ * Budgets are optional: spending without a matching budget is allowed.
+ */
+async function adjustBudgetUsed(userId, date, category, subcategory, delta) {
+  if (!category || !subcategory) return;
+  const month = date.substring(0, 7);
+
+  const snapshot = await budgetsCollection
+    .where('userId', '==', userId)
+    .where('month', '==', month)
+    .get();
+
+  if (snapshot.empty) return;
+
+  const budgetDoc = snapshot.docs[0];
+  const budgetData = budgetDoc.data();
+  const categories = Array.isArray(budgetData.categories) ? budgetData.categories : [];
+
+  const categoryObj = categories.find(cat => cat.name === category);
+  if (!categoryObj) return;
+
+  const subcategoryObj = (categoryObj.subcategories || []).find(sub => sub.name === subcategory);
+  if (!subcategoryObj) return;
+
+  subcategoryObj.used = Math.max(0, (subcategoryObj.used || 0) + delta);
+  await budgetsCollection.doc(budgetDoc.id).update({ categories });
+}
+
 // 🔹 Tambah transaksi (income atau expense)
 router.post('/', async (req, res) => {
   try {
-    const { userId, date, amount, type, category, subcategory, walletId, description } = req.body;
+    // userId comes from the session. It used to be read from the request body,
+    // which meant any caller could write transactions into someone else's
+    // ledger (NOTES.md bug #4).
+    const userId = ownerOf(req);
+    const { date, amount, type, category, subcategory, walletId, description } = req.body;
 
     // Validasi input
-    if (!userId || !date || !amount || !type || !walletId) {
-      return res.status(400).json({ error: "Field tidak lengkap" });
+    if (!date || !amount || !type || !walletId) {
+      return res.status(400).json({ error: 'Field tidak lengkap' });
+    }
+    if (type !== 'income' && type !== 'expense') {
+      return res.status(400).json({ error: 'Tipe harus income atau expense' });
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Amount harus lebih besar dari nol' });
     }
 
-    // Periksa kecukupan saldo SEBELUM membuat transaksi
     const walletRef = walletsCollection.doc(walletId);
     const walletDoc = await walletRef.get();
-    
+
     if (!walletDoc.exists) {
-      return res.status(404).json({ error: "Wallet tidak ditemukan" });
+      return res.status(404).json({ error: 'Wallet tidak ditemukan' });
     }
 
     const walletData = walletDoc.data();
-
-    // Jika expense, periksa saldo terlebih dahulu
-    if (type === "expense") {
-      if ((walletData.balance - walletData.frozen) < amount) {
-        return res.status(400).json({ error: "Saldo tidak mencukupi" });
-      }
+    if (walletData.userId !== userId) {
+      return res.status(404).json({ error: 'Wallet tidak ditemukan' });
     }
 
-    // Jika semua validasi berhasil, buat transaksi
-    const newTransaction = { userId, date, amount, type, category, subcategory, walletId, description };
-    const docRef = await transactionsCollection.add(newTransaction);
-
-    // Update saldo wallet
-    let updatedBalance = walletData.balance;
-    updatedBalance = type === "income" ? 
-      updatedBalance + amount : 
-      updatedBalance - amount;
-
-    await walletRef.update({ balance: updatedBalance });
-
-    // Jika transaksi adalah expense, update anggaran
-    if (type === "expense" && category && subcategory) {
-      // Ekstrak bulan dari tanggal (format: YYYY-MM-DD)
-      const month = date.substring(0, 7); // Mengambil YYYY-MM
-
-      // Cari anggaran berdasarkan userId dan bulan
-      const budgetQuerySnapshot = await budgetsCollection
-        .where('userId', '==', userId)
-        .where('month', '==', month)
-        .get();
-
-      if (!budgetQuerySnapshot.empty) {
-        const budgetDoc = budgetQuerySnapshot.docs[0];
-        const budgetData = budgetDoc.data();
-        const budgetId = budgetDoc.id;
-
-        // Cek apakah kategori ada dalam anggaran
-        const categoryObj = budgetData.categories.find(cat => cat.name === category);
-        if (categoryObj) {
-          // Cek apakah subkategori ada dalam kategori
-          const subcategoryObj = categoryObj.subcategories.find(sub => sub.name === subcategory);
-          if (subcategoryObj) {
-            // console.log('ditemukan');
-            // Kurangi nilai anggaran sesuai dengan jumlah expense
-            const currentAmount = subcategoryObj.amount;
-            const currentUsed = subcategoryObj.used || 0;
-            
-            // Update nilai used pada subkategori
-            subcategoryObj.used = currentUsed + amount;
-            
-            // Update anggaran di database
-            await budgetsCollection.doc(budgetId).update({
-              categories: budgetData.categories
-            });
-          } else {
-            console.log('subkategori tidak ditemukan');
-          }
-        } else {
-          console.log('kategori tidak ditemukan');
-        }
-      }
+    // Periksa kecukupan saldo SEBELUM membuat transaksi
+    if (type === 'expense' && walletData.balance - walletData.frozen < amount) {
+      return res.status(400).json({ error: 'Saldo tidak mencukupi' });
     }
 
-    res.status(201).json({ id: docRef.id, ...newTransaction });
+    // Creating the transaction and adjusting the wallet balance used to be two
+    // separate writes, so an interruption between them corrupted the balance
+    // (NOTES.md bug #5). One transaction now covers both.
+    const docRef = await db.runTransaction(async () => {
+      const ref = await transactionsCollection.add({ userId, date, amount, type, category, subcategory, walletId, description });
+
+      const updatedBalance =
+        type === 'income' ? walletData.balance + amount : walletData.balance - amount;
+      await walletRef.update({ balance: updatedBalance });
+
+      if (type === 'expense') {
+        await adjustBudgetUsed(userId, date, category, subcategory, amount);
+      }
+      return ref;
+    });
+
+    res.status(201).json({ id: docRef.id, userId, date, amount, type, category, subcategory, walletId, description });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -97,24 +99,31 @@ router.post('/', async (req, res) => {
 
 // 🔹 Ambil transaksi berdasarkan ID
 router.get('/detail/:id', async (req, res) => {
-    try {
-        const trxRef = transactionsCollection.doc(req.params.id);
-        const trxDoc = await trxRef.get();
-    
-        if (!trxDoc.exists) {
-            return res.status(404).json({ error: "Transaksi tidak ditemukan" });
-        }
-    
-        res.status(200).json({ id: trxDoc.id, ...trxDoc.data() });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+  try {
+    const trxDoc = await transactionsCollection.doc(req.params.id).get();
+
+    if (!trxDoc.exists || trxDoc.data().userId !== ownerOf(req)) {
+      return res.status(404).json({ error: 'Transaksi tidak ditemukan' });
     }
+
+    res.status(200).json({ id: trxDoc.id, ...trxDoc.data() });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 🔹 Ambil daftar transaksi per bulan
 router.get('/:userId/:month', async (req, res) => {
   try {
-    const { userId, month } = req.params;
+    const { month } = req.params;
+    const userId = ownerOf(req);
+
+    // The userId path segment is retained for URL compatibility, but it is only
+    // honoured if it matches the signed-in user. Anything else is refused
+    // rather than silently served, so a mismatched link fails loudly.
+    if (req.params.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     const querySnapshot = await transactionsCollection
       .where('userId', '==', userId)
@@ -134,119 +143,73 @@ router.get('/:userId/:month', async (req, res) => {
 // 🔹 Update transaksi
 router.put('/:id', async (req, res) => {
   try {
-    const { userId, date, amount, type, category, subcategory, walletId, description } = req.body;
+    const { date, amount, type, category, subcategory, walletId, description } = req.body;
+    const userId = ownerOf(req);
+
+    if (!date || !amount || !type || !walletId) {
+      return res.status(400).json({ error: 'Field tidak lengkap' });
+    }
+    if (type !== 'income' && type !== 'expense') {
+      return res.status(400).json({ error: 'Tipe harus income atau expense' });
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Amount harus lebih besar dari nol' });
+    }
 
     const trxRef = transactionsCollection.doc(req.params.id);
     const trxDoc = await trxRef.get();
 
-    if (!trxDoc.exists) {
-      return res.status(404).json({ error: "Transaksi tidak ditemukan" });
+    if (!trxDoc.exists || trxDoc.data().userId !== userId) {
+      return res.status(404).json({ error: 'Transaksi tidak ditemukan' });
     }
 
     const oldTransaction = trxDoc.data();
 
-    // Hitung perubahan saldo wallet
-    const walletRef = walletsCollection.doc(walletId);
-    const walletDoc = await walletRef.get();
+    const oldWalletRef = walletsCollection.doc(oldTransaction.walletId);
+    const oldWalletDoc = await oldWalletRef.get();
+    const newWalletRef = walletsCollection.doc(walletId);
+    const newWalletDoc = await newWalletRef.get();
 
-    if (!walletDoc.exists) {
-      return res.status(404).json({ error: "Wallet tidak ditemukan" });
+    if (!oldWalletDoc.exists || oldWalletDoc.data().userId !== userId) {
+      return res.status(404).json({ error: 'Wallet tidak ditemukan' });
+    }
+    if (!newWalletDoc.exists || newWalletDoc.data().userId !== userId) {
+      return res.status(404).json({ error: 'Wallet tidak ditemukan' });
     }
 
-    const walletData = walletDoc.data();
-    let updatedBalance = walletData.balance;
+    const oldWallet = oldWalletDoc.data();
+    const newWallet = newWalletDoc.data();
 
-    // Kembalikan saldo awal sebelum update
-    if (oldTransaction.type === "income") {
-      updatedBalance -= oldTransaction.amount;
-    } else {
-      updatedBalance += oldTransaction.amount;
-    }
+    // Bug #2 fixed. The original code read the sign from the OLD transaction
+    // but applied both the refund and the new charge to whichever wallet the
+    // REQUEST named, so moving an expense between wallets debited and credited
+    // the same wallet and never refunded the original one. Each wallet is now
+    // adjusted by its own transaction's own sign.
+    await db.runTransaction(async () => {
+      // Undo the old transaction against the wallet it actually belongs to.
+      const revertOld =
+        oldTransaction.type === 'income'
+          ? oldWallet.balance - oldTransaction.amount
+          : oldWallet.balance + oldTransaction.amount;
+      await oldWalletRef.update({ balance: revertOld });
 
-    // Update saldo dengan transaksi baru
-    if (type === "income") {
-      updatedBalance += amount;
-    } else {
-      updatedBalance -= amount;
-    }
+      // Apply the new transaction. When it is the same wallet, this reads the
+      // value written a moment ago rather than the stale pre-update snapshot.
+      const baseBalance = walletId === oldTransaction.walletId ? revertOld : newWallet.balance;
+      const applyNew = type === 'income' ? baseBalance + amount : baseBalance - amount;
+      await newWalletRef.update({ balance: applyNew });
 
-    await walletRef.update({ balance: updatedBalance });
-
-    // Update anggaran jika diperlukan
-    // 1. Jika transaksi lama adalah expense, kembalikan nilai anggaran
-    if (oldTransaction.type === "expense" && oldTransaction.category && oldTransaction.subcategory) {
-      const oldMonth = oldTransaction.date.substring(0, 7);
-      
-      const oldBudgetQuerySnapshot = await budgetsCollection
-        .where('userId', '==', oldTransaction.userId)
-        .where('month', '==', oldMonth)
-        .get();
-
-      if (!oldBudgetQuerySnapshot.empty) {
-        const oldBudgetDoc = oldBudgetQuerySnapshot.docs[0];
-        const oldBudgetData = oldBudgetDoc.data();
-        const oldBudgetId = oldBudgetDoc.id;
-
-        // Cek apakah kategori ada dalam anggaran lama
-        const oldCategoryObj = oldBudgetData.categories.find(cat => cat.name === oldTransaction.category);
-        if (oldCategoryObj) {
-          // Cek apakah subkategori ada dalam kategori
-          const oldSubcategoryObj = oldCategoryObj.subcategories.find(sub => sub.name === oldTransaction.subcategory);
-          if (oldSubcategoryObj) {
-            // Kembalikan nilai used pada subkategori
-            const oldUsed = oldSubcategoryObj.used || 0;
-            
-            // Kurangi nilai used dengan jumlah expense lama
-            oldSubcategoryObj.used = Math.max(0, oldUsed - oldTransaction.amount);
-            
-            // Update anggaran lama di database
-            await budgetsCollection.doc(oldBudgetId).update({
-              categories: oldBudgetData.categories
-            });
-          }
-        }
+      if (oldTransaction.type === 'expense') {
+        await adjustBudgetUsed(userId, oldTransaction.date, oldTransaction.category, oldTransaction.subcategory, -oldTransaction.amount);
       }
-    }
-
-    // 2. Jika transaksi baru adalah expense, kurangi nilai anggaran
-    if (type === "expense" && category && subcategory) {
-      const newMonth = date.substring(0, 7);
-      
-      const newBudgetQuerySnapshot = await budgetsCollection
-        .where('userId', '==', userId)
-        .where('month', '==', newMonth)
-        .get();
-
-      if (!newBudgetQuerySnapshot.empty) {
-        const newBudgetDoc = newBudgetQuerySnapshot.docs[0];
-        const newBudgetData = newBudgetDoc.data();
-        const newBudgetId = newBudgetDoc.id;
-
-        // Cek apakah kategori ada dalam anggaran baru
-        const newCategoryObj = newBudgetData.categories.find(cat => cat.name === category);
-        if (newCategoryObj) {
-          // Cek apakah subkategori ada dalam kategori
-          const newSubcategoryObj = newCategoryObj.subcategories.find(sub => sub.name === subcategory);
-          if (newSubcategoryObj) {
-            // Ambil nilai used saat ini
-            const currentUsed = newSubcategoryObj.used || 0;
-            
-            // Update nilai used pada subkategori
-            newSubcategoryObj.used = currentUsed + amount;
-            
-            // Update anggaran baru di database
-            await budgetsCollection.doc(newBudgetId).update({
-              categories: newBudgetData.categories
-            });
-          }
-        }
+      if (type === 'expense') {
+        await adjustBudgetUsed(userId, date, category, subcategory, amount);
       }
-    }
 
-    // Simpan perubahan transaksi
-    await trxRef.update({ userId, date, amount, type, category, subcategory, walletId, description });
+      await trxRef.update({ date, amount, type, category, subcategory, walletId, description });
+    });
 
-    res.status(200).json({ message: "Transaksi diperbarui" });
+    res.status(200).json({ message: 'Transaksi diperbarui' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -255,70 +218,42 @@ router.put('/:id', async (req, res) => {
 // 🔹 Hapus transaksi
 router.delete('/:id', async (req, res) => {
   try {
+    const userId = ownerOf(req);
     const trxRef = transactionsCollection.doc(req.params.id);
     const trxDoc = await trxRef.get();
 
-    if (!trxDoc.exists) {
-      return res.status(404).json({ error: "Transaksi tidak ditemukan" });
+    if (!trxDoc.exists || trxDoc.data().userId !== userId) {
+      return res.status(404).json({ error: 'Transaksi tidak ditemukan' });
     }
 
     const transaction = trxDoc.data();
     const walletRef = walletsCollection.doc(transaction.walletId);
     const walletDoc = await walletRef.get();
 
-    if (!walletDoc.exists) {
-      return res.status(404).json({ error: "Wallet tidak ditemukan" });
+    if (!walletDoc.exists || walletDoc.data().userId !== userId) {
+      return res.status(404).json({ error: 'Wallet tidak ditemukan' });
     }
 
     const walletData = walletDoc.data();
-    const updatedBalance = transaction.type === "income"
-      ? walletData.balance - transaction.amount
-      : walletData.balance + transaction.amount;
 
-    await walletRef.update({ balance: updatedBalance });
+    await db.runTransaction(async () => {
+      const updatedBalance =
+        transaction.type === 'income'
+          ? walletData.balance - transaction.amount
+          : walletData.balance + transaction.amount;
+      await walletRef.update({ balance: updatedBalance });
 
-    // Jika transaksi yang dihapus adalah expense, kembalikan nilai anggaran
-    if (transaction.type === "expense" && transaction.category && transaction.subcategory) {
-      const month = transaction.date.substring(0, 7);
-      
-      const budgetQuerySnapshot = await budgetsCollection
-        .where('userId', '==', transaction.userId)
-        .where('month', '==', month)
-        .get();
-
-      if (!budgetQuerySnapshot.empty) {
-        const budgetDoc = budgetQuerySnapshot.docs[0];
-        const budgetData = budgetDoc.data();
-        const budgetId = budgetDoc.id;
-
-        // Cek apakah kategori ada dalam anggaran
-        const categoryObj = budgetData.categories.find(cat => cat.name === transaction.category);
-        if (categoryObj) {
-          // Cek apakah subkategori ada dalam kategori
-          const subcategoryObj = categoryObj.subcategories.find(sub => sub.name === transaction.subcategory);
-          if (subcategoryObj) {
-            // Ambil nilai used saat ini
-            const currentUsed = subcategoryObj.used || 0;
-            
-            // Kurangi nilai used dengan jumlah expense yang dihapus
-            subcategoryObj.used = Math.max(0, currentUsed - transaction.amount);
-            
-            // Update anggaran di database
-            await budgetsCollection.doc(budgetId).update({
-              categories: budgetData.categories
-            });
-          }
-        }
+      if (transaction.type === 'expense') {
+        await adjustBudgetUsed(userId, transaction.date, transaction.category, transaction.subcategory, -transaction.amount);
       }
-    }
 
-    await trxRef.delete();
+      await trxRef.delete();
+    });
 
-    res.status(200).json({ message: "Transaksi dihapus" });
+    res.status(200).json({ message: 'Transaksi dihapus' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 module.exports = router;
