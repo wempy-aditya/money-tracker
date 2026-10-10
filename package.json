@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --test 'test/**/*.test.js'"
+    "test": "SQLITE_FILE=data/test-run.db node --test --test-concurrency=1 'test/**/*.test.js'",
+    "test:clean": "rm -f data/test-run.db data/test-run.db-journal"
   },
   "keywords": [],
   "author": "",
