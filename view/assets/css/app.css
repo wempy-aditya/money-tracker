@@ -1453,6 +1453,245 @@ blockquote > :last-child { margin-bottom: 0; }
 
 .chat__bubble--md strong { font-weight: 650; color: var(--text-primary); }
 
+/* ------------------------------------------------------- sort controls */
+
+/* Two selects that always sit together. The direction one is disabled until a
+   field is chosen, so it never offers a choice that has nothing to act on. */
+.sort-control {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.sort-control__label {
+	font-size: 13px;
+	color: var(--text-secondary);
+	white-space: nowrap;
+}
+
+.sort-control .select {
+	/* Two controls plus a label have to fit beside the page actions on a phone,
+	   so they are allowed to wrap rather than force the toolbar to scroll. */
+	min-width: 0;
+}
+
+.sort-control .select:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+@media (max-width: 620px) {
+	.sort-control {
+		width: 100%;
+	}
+
+	.sort-control .select {
+		flex: 1 1 8em;
+	}
+}
+
+/* ---------------------------------------------------------- wallet cards */
+
+/* The card used to pin its three readouts into three columns with an inline
+   style, which beat the stylesheet's own breakpoints: on a phone three numbers
+   had to fit inside one narrow card, and "Rp1,8 jt" stopped fitting. The
+   columns belong to the stylesheet, where the breakpoints already are. */
+
+.wallet-card__head {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.wallet-card__name {
+	flex: 1 1 auto;
+	/* min-width:0 on a flex child is what lets it shrink. Without it the
+	   heading sets the row's width and the buttons are pushed off the card. */
+	min-width: 0;
+	margin: 0;
+	font-size: 16px;
+	overflow-wrap: anywhere;
+}
+
+.wallet-card__head .table__actions {
+	flex: none;
+}
+
+.wallet-card__tag {
+	margin-top: 8px;
+}
+
+.wallet-card__figures {
+	margin-top: 14px;
+	/* Three readouts side by side once there is room for them, stacked once
+	   there is not. The parent .stats rule already turns a two-column list into
+	   four at 720px, so this only has to say "three when it fits". */
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* An amount must never break across lines. "Rp37,3" over "jt" reads as two
+   different numbers, and a rupiah figure that splits is worse than one that is
+   a size smaller. But nowrap alone pushes the text past the edge of its box,
+   so the readout also has to fit: less padding inside it, and a figure size
+   sized for three across rather than one. */
+.wallet-card__figures .stat {
+	padding: 12px 10px;
+}
+
+.wallet-card__figures .stat__value {
+	white-space: nowrap;
+	font-size: 16px;
+	letter-spacing: -0.03em;
+}
+
+@media (min-width: 768px) {
+	.wallet-card__figures .stat {
+		padding: 13px 11px;
+	}
+
+	.wallet-card__figures .stat__value {
+		font-size: 19px;
+	}
+}
+
+/* Once the readouts stack, they have the whole card and can be the normal size
+   again rather than permanently shrunk. */
+@media (max-width: 719px) {
+	.wallet-card__figures .stat {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.wallet-card__figures .stat__value {
+		font-size: 18px;
+	}
+}
+
+@media (max-width: 719px) {
+	/* Below the .stats breakpoint the three become one. A rupiah amount is
+	   the widest thing on the card, and squeezing three of them into a phone
+	   width is what made it unreadable. */
+	.wallet-card__figures {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 8px;
+	}
+}
+
+/* On a phone the edit and delete buttons sit under the name instead of beside
+   it, so a long name cannot squeeze them off the edge. */
+@media (max-width: 560px) {
+	.wallet-card__head {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 10px;
+	}
+
+	.wallet-card__head .table__actions {
+		align-self: flex-end;
+	}
+}
+
+/* ----------------------------------------------------- wallet kind tags */
+
+/* The icon carries the meaning and the word confirms it: the tag has to be
+   readable at a glance and legible when the icon is too small to resolve. */
+.kind-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 9px 3px 7px;
+	font-size: 12px;
+	font-weight: 550;
+	line-height: 1.4;
+	color: var(--text-secondary);
+	background: var(--surface-sunken);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-control);
+	white-space: nowrap;
+}
+
+.kind-tag .kind-icon {
+	flex: none;
+	/* One accent for the whole app, so the icon tints the accent and the text
+	   keeps the secondary colour rather than introducing a second palette. */
+	color: var(--accent);
+}
+
+.kind-icon {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+/* A wallet saved before kinds existed has no kind. It reads as "Lainnya"
+   rather than showing an empty chip. */
+.kind-tag--unknown {
+	color: var(--text-muted);
+	border-style: dashed;
+}
+
+.kind-tag--unknown .kind-icon {
+	color: var(--text-muted);
+}
+
+/* The picker in the wallet form: a radio per kind, icon above the label, so
+   choosing one is picking a picture rather than reading a word. */
+.wallet-kind-picker {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+	gap: 8px;
+}
+
+.wallet-kind-picker__option {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 11px 8px;
+	font-size: 12px;
+	font-weight: 550;
+	text-align: center;
+	color: var(--text-secondary);
+	background: var(--surface-raised);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-control);
+	cursor: pointer;
+	transition: border-color 120ms ease, background 120ms ease;
+}
+
+.wallet-kind-picker__option:hover {
+	border-color: var(--accent);
+}
+
+.wallet-kind-picker__option .kind-icon {
+	width: 22px;
+	height: 22px;
+	color: var(--text-secondary);
+}
+
+.wallet-kind-picker__option input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.wallet-kind-picker__option:has(input:checked) {
+	color: var(--accent-text);
+	background: var(--accent-soft);
+	border-color: var(--accent);
+}
+
+.wallet-kind-picker__option:has(input:checked) .kind-icon {
+	color: var(--accent);
+}
+
+.wallet-kind-picker__option:has(input:focus-visible) {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
 /* ------------------------------------------------------------------ guide */
 
 /* Reference material rather than an interface: wide measure, quiet headings,

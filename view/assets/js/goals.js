@@ -41,17 +41,43 @@
 		setText('goalCount', String(goals.length));
 	}
 
+	/**
+	 * Sortable fields are the ones a goal card actually shows: what it is called,
+	 * how much is being saved, how close it is, and when it is due. Progress is
+	 * derived per card, so it is offered as its own field rather than left out.
+	 */
+	var sortControl = App.createSortControl({
+		selectId: 'sortBy',
+		directionId: 'sortDir',
+		fields: [
+			{ value: 'name', label: 'Nama target', get: function (g) { return g.name || ''; }, defaultDirection: 'asc' },
+			{ value: 'targetAmount', label: 'Nominal target', get: function (g) { return Number(g.targetAmount) || 0; }, defaultDirection: 'desc' },
+			{ value: 'progress', label: 'Progres', get: function (g) {
+				var target = Number(g.targetAmount) || 0;
+				if (target <= 0) return -1;
+				return ((Number(g.currentAmount) || 0) / target) * 100;
+			}, defaultDirection: 'desc' },
+			{ value: 'targetDate', label: 'Tenggat', get: function (g) { return g.targetDate || ''; }, defaultDirection: 'asc' }
+		]
+	});
+
+	App.on('sort:changed', function () {
+		if (goals.length) renderGoals();
+	});
+
 	function renderGoals() {
 		var host = document.getElementById('goalsList');
 
 		if (goals.length === 0) {
 			host.innerHTML = '<div class="card"><div class="card__body">' +
 				'<div class="empty"><div class="empty__title">Belum ada target</div>' +
-				'<p>Buat target untuk menabung toward a specific goal.</p></div></div></div>';
+				'<p>Buat target untuk menyimpan uang menuju tujuan tertentu.</p></div></div></div>';
 			return;
 		}
 
-		host.innerHTML = goals.map(function (goal) {
+		var sorted = sortControl ? sortControl.apply(goals) : goals;
+
+		host.innerHTML = sorted.map(function (goal) {
 			var target = Number(goal.targetAmount) || 0;
 			var current = Number(goal.currentAmount) || 0;
 			var progress = target > 0 ? Math.min(100, (current / target) * 100) : 0;

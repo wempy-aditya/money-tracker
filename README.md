@@ -362,6 +362,41 @@ A page reached from inside the menu still marks the menu button as current.
 Marking only the hidden link would leave the bar showing no indication at all
 while you are on the settings page.
 
+## Sorting and wallet types
+
+Every list page can be reordered without a round trip:
+
+```text
+Transactions · Budget · Wallets · Goals · Rules
+```
+
+Two dropdowns sit above each list. The first picks the field; the second picks
+the direction and stays disabled until a field is chosen, so it never offers a
+choice that would do nothing.
+
+The sort runs in the browser over data the page has already loaded, because all
+five lists are small and each one already fetches everything it draws. Choosing
+nothing leaves the order the API returned. A row with no value for the chosen
+field goes last in both directions, which includes a transaction saved with no
+category: an empty string is a missing value here, not something that sorts
+before every real category.
+
+Wallets carry a `kind`:
+
+```text
+bank · ewallet · cash · savings · investment · credit · other
+```
+
+It is chosen from a picture picker in the add and edit dialogs and shown as a
+tag on the card. A wallet saved before this existed has no `kind` and reads as
+`other`; nothing has to be migrated, because wallets are schemaless documents
+rather than a table with a column list. An unknown value sent to the API is
+rejected rather than stored, so a typo in a client cannot create a kind that has
+no icon.
+
+`PUT /api/wallets/:id` is a partial update. Fields left out are kept, so
+editing a wallet's name does not clear its kind.
+
 ## Known gaps
 
 ```text
@@ -374,9 +409,11 @@ Language detection is a word list, not a model. It handles the clear cases; a
   short code-mixed question returns nothing and falls back to the instruction in
   the prompt. Tuning it means adding words, not retraining anything.
 
-Layout on phones is not visually verified. The CSS collapses to one column and
-  the inputs are 16px, but no automated check can resize a viewport. Worth one
-  look on a real phone before trusting a layout change.
+Layout on phones is still not visually verified. No automated check can resize a
+  viewport, so the breakpoints are reasoned about rather than seen. The wallet
+  card was measured in the browser at desktop width, where its three readouts sit
+  on one line each and fit; below 720px they stack, and below 560px the name and
+  the buttons stop sharing a row. Those narrower rules have not been looked at.
 
 test/smoke.sh predates authentication and still checks the old unauthenticated
   contract. It is not part of npm test and will fail if run directly.

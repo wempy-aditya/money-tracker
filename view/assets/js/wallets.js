@@ -38,6 +38,28 @@
 			'</div>';
 	}
 
+	/**
+	 * Sorted by what a wallet list is actually read for: which account is
+	 * biggest, which is nearly empty, and which ones are cash.
+	 */
+	var sortControl = App.createSortControl({
+		selectId: 'sortBy',
+		directionId: 'sortDir',
+		fields: [
+			{ value: 'name', label: 'Nama', get: function (w) { return w.name || ''; }, defaultDirection: 'asc' },
+			{ value: 'balance', label: 'Saldo', get: function (w) { return Number(w.balance) || 0; }, defaultDirection: 'desc' },
+			{ value: 'usable', label: 'Saldo tersedia', get: function (w) {
+				return (Number(w.balance) || 0) - (Number(w.frozen) || 0);
+			}, defaultDirection: 'desc' },
+			{ value: 'frozen', label: 'Dana beku', get: function (w) { return Number(w.frozen) || 0; }, defaultDirection: 'desc' },
+			{ value: 'kind', label: 'Jenis', get: function (w) { return App.walletKindLabel(w.kind); }, defaultDirection: 'asc' }
+		]
+	});
+
+	App.on('sort:changed', function () {
+		if (wallets.length) renderWallets();
+	});
+
 	function renderWallets() {
 		var host = document.getElementById('walletList');
 
@@ -49,13 +71,15 @@
 			return;
 		}
 
-		host.innerHTML = wallets.map(function (wallet) {
+		var sorted = sortControl ? sortControl.apply(wallets) : wallets;
+
+		host.innerHTML = sorted.map(function (wallet) {
 			var usable = (Number(wallet.balance) || 0) - (Number(wallet.frozen) || 0);
 			var name = App.escapeHtml(wallet.name);
 
 			return '<div class="card"><div class="card__body">' +
-				'<div style="display:flex;align-items:flex-start;gap:8px">' +
-				'<h2 style="font-size:16px;margin-right:auto;min-width:0;overflow-wrap:anywhere">' + name + '</h2>' +
+				'<div class="wallet-card__head">' +
+				'<h2 class="wallet-card__name">' + name + '</h2>' +
 				'<div class="table__actions">' +
 				'<button class="icon-btn" type="button" onclick="openEditModal(' +
 				JSON.stringify(wallet.id).replace(/"/g, '&quot;') + ',' +
@@ -66,7 +90,8 @@
 				JSON.stringify(wallet.id).replace(/"/g, '&quot;') +
 				')" aria-label="Hapus ' + name + '" title="Hapus">&#128465;</button>' +
 				'</div></div>' +
-				'<div class="stats" style="margin-top:14px;grid-template-columns:repeat(3,minmax(0,1fr))">' +
+				'<div class="wallet-card__tag">' + App.walletKindTag(wallet.kind) + '</div>' +
+				'<div class="stats wallet-card__figures">' +
 				'<div class="stat stat--accent"><div class="stat__label">Saldo</div>' +
 				'<div class="stat__value">' + App.formatRupiahShort(wallet.balance) + '</div></div>' +
 				'<div class="stat stat--warning"><div class="stat__label">Beku</div>' +
@@ -161,11 +186,61 @@
 			});
 	};
 
+	/* ---------------------------------------------------------- kind picker */
+
+	/**
+	 * The kind is a radio group rather than a select because each one has an
+	 * icon, and the point of tagging a wallet with its kind is that the icon is
+	 * what you recognise. A dropdown hides the pictures behind one line of text.
+	 *
+	 * Built from the same table the server validates against, so an option the
+	 * server would reject cannot be picked.
+	 */
+	function buildKindPickers() {
+		document.querySelectorAll('[data-kind-picker]').forEach(function (host) {
+			host.innerHTML = Object.keys(App.WALLET_KINDS).map(function (key, index) {
+				var entry = App.WALLET_KINDS[key];
+				// One shared name across both pickers: they are in two different
+				// forms, but a browser would let one radio group span both.
+				return '<label class="wallet-kind-picker__option">' +
+					'<input type="radio" name="walletKind" value="' + App.escapeHtml(key) + '"' +
+					(index === 0 ? ' checked' : '') +
+					' data-kind-radio />' +
+					App.walletIcon(key) +
+					'<span>' + App.escapeHtml(entry.label) + '</span></label>';
+			}).join('');
+		});
+	}
+
+	/** The kind currently chosen in a picker, or the default if none is. */
+	function readKind(pickerSelector) {
+		var checked = document.querySelector(pickerSelector + ' input:checked');
+		return checked ? checked.value : App.WALLET_KINDS.other ? 'other' : 'other';
+	}
+
+	/** Preselect a kind when opening the edit form. */
+	function setKind(pickerSelector, kind) {
+		var host = document.querySelector(pickerSelector);
+		if (!host) return;
+
+		var wanted = kind && Object.prototype.hasOwnProperty.call(App.WALLET_KINDS, kind)
+			? kind
+			: 'other';
+
+		var input = host.querySelector('input[value="' + wanted + '"]') ||
+			host.querySelector('input');
+
+		if (input) input.checked = true;
+	}
+
 	/* ------------------------------------------------------------- modals */
 
 	window.openAddModal = function () {
 		document.getElementById('addForm').reset();
 		document.getElementById('walletFrozen').value = 0;
+		// reset() clears a checked radio back to the markup default, which is the
+		// first kind. Left alone it would silently reopen as a bank account.
+		setKind('[data-kind-picker]', 'other');
 		App.openModal('addModal');
 	};
 
@@ -173,11 +248,19 @@
 		App.closeModal('addModal');
 	};
 
-	window.openEditModal = function (id, name, balance, frozen) {
+	window.openEditModal = function (id, name, balance, frozen, kindLabel) {
+		// The card passes the label because it is what is on screen; the picker
+		// needs the stored key. Matching on the label keeps the inline handler
+		// readable instead of embedding a lookup table in an onclick attribute.
+		var kind = Object.keys(App.WALLET_KINDS).filter(function (key) {
+			return App.WALLET_KINDS[key].label === kindLabel;
+		})[0] || 'other';
+
 		selectedWalletId = id;
 		document.getElementById('editWalletName').value = name;
 		document.getElementById('editWalletBalance').value = balance;
 		document.getElementById('editWalletFrozen').value = frozen;
+		setKind('#editModal [data-kind-picker]', kind);
 		App.openModal('editModal');
 	};
 
@@ -223,6 +306,10 @@
 	}
 
 	document.addEventListener('DOMContentLoaded', function () {
+		// Before anything else: the pickers are markup the forms submit, so they
+		// have to exist before a form can be opened.
+		buildKindPickers();
+
 		App.api('/api/auth/me')
 			.then(function (data) {
 				document.getElementById('currentUser').textContent = data.user.username;
@@ -240,7 +327,8 @@
 					body: {
 						name: document.getElementById('walletName').value,
 						balance: Number(document.getElementById('walletBalance').value),
-						frozen: Number(document.getElementById('walletFrozen').value || 0)
+						frozen: Number(document.getElementById('walletFrozen').value || 0),
+						kind: readKind('#addModal [data-kind-picker]')
 					}
 				}).then(function () {
 					App.closeModal('addModal');
@@ -261,7 +349,8 @@
 					body: {
 						name: document.getElementById('editWalletName').value,
 						balance: Number(document.getElementById('editWalletBalance').value),
-						frozen: Number(document.getElementById('editWalletFrozen').value)
+						frozen: Number(document.getElementById('editWalletFrozen').value),
+						kind: readKind('#editModal [data-kind-picker]')
 					}
 				}).then(function () {
 					App.closeModal('editModal');

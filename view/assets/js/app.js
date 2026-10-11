@@ -185,7 +185,7 @@
 	 * safe to assign to innerHTML.
 	 */
 	function renderMarkdown(source) {
-		var lines = escapeHtml(String(source === null || source === undefined ? '' : source)).split('\n');
+		var lines = App.escapeHtml(String(source === null || source === undefined ? '' : source)).split('\n');
 		var html = [];
 		var list = null;   // 'ul' | 'ol' | null
 		var quote = [];
@@ -344,6 +344,249 @@
 		closeAll();
 
 		return html.join('');
+	}
+
+/* ------------------------------------------------------------ sorting */
+
+	/**
+	 * Client-side sorting for the five list pages.
+	 *
+	 * Each page already loads its whole list into memory to render it, so sorting
+	 * here costs nothing and keeps the API unchanged. Pushing it to the server
+	 * would mean a second contract, and the sort would reset whenever the list
+	 * was re-fetched, which is exactly when someone is trying to read it.
+	 *
+	 * A sort control is a select for the field and a second one for the
+	 * direction. The direction control is disabled while no field is chosen, so
+	 * it never offers a choice that has no effect.
+	 */
+	function createSortControl(options) {
+		var config = options || {};
+		var selectId = config.selectId;
+		var directionId = config.directionId;
+		var label = config.label || 'Urutkan';
+
+		var select = document.getElementById(selectId);
+		var direction = document.getElementById(directionId);
+		if (!select || !direction) return null;
+
+		var fields = config.fields || [];
+		var keys = config.keys || fields.map(function (field) { return field.value; });
+
+		// A field can declare which way it should read the first time it is
+		// chosen. Names want A to Z; an amount or a date wants the largest or
+		// the newest first. Defaulting everything to descending meant choosing
+		// "sort by name" gave you Z to A, which nobody means.
+		var defaultDirectionFor = function (key) {
+			var index = keys.indexOf(key);
+			if (index === -1) return config.defaultDirection || 'desc';
+			if (fields[index].defaultDirection) return fields[index].defaultDirection;
+			return config.defaultDirection || 'desc';
+		};
+
+		// Stored on the object so a page can re-render without re-reading the DOM.
+		var state = {
+			key: config.defaultKey || '',
+			direction: config.defaultKey
+				? defaultDirectionFor(config.defaultKey)
+				: (config.defaultDirection || 'desc')
+		};
+
+		var accessorFor = function (key) {
+			var index = keys.indexOf(key);
+			return index === -1 ? null : fields[index].get;
+		};
+
+		function apply(rows) {
+			var get = accessorFor(state.key);
+			if (!get) return rows;
+
+			var sign = state.direction === 'asc' ? 1 : -1;
+
+			// A copy: sort() mutates, and callers keep passing their own array.
+			return rows.slice().sort(function (a, b) {
+				var left = get(a);
+				var right = get(b);
+
+				// A row with no value for this field goes last whichever way the
+				// sort runs. Comparing it as an empty string would put it first
+				// in an ascending sort, so a wallet with no name would sort above
+				// every wallet that has one.
+				//
+				// An empty string counts as no value too. A transaction saved
+				// without a category reads "-" in the table, and sorting by
+				// category would otherwise park every one of those at the top,
+				// above real categories, because "" precedes everything.
+				var leftMissing = left == null || left === '';
+				var rightMissing = right == null || right === '';
+
+				if (leftMissing && rightMissing) return 0;
+				if (leftMissing) return 1;
+				if (rightMissing) return -1;
+
+				// Numbers compare as numbers. Everything else compares as text,
+				// so a wallet named "10 Kas" lands next to "2 Bank" by name rather
+				// than by string length or by an accidental numeric coercion.
+				if (typeof left === 'number' && typeof right === 'number') {
+					return (left - right) * sign;
+				}
+
+				return String(left).localeCompare(String(right), 'id', { numeric: true }) * sign;
+			});
+		}
+
+		// Field options. The first entry is the "no field" choice, and it is the
+		// one the list starts on, so the page keeps the order the API gave.
+		select.innerHTML = ['<option value="">' + escapeHtml(label) + '</option>'].concat(
+			fields.map(function (field) {
+				return '<option value="' + escapeHtml(field.value) + '">' +
+					escapeHtml(field.label) + '</option>';
+			})
+		).join('');
+
+		direction.disabled = true;
+
+		select.addEventListener('change', function () {
+			state.key = select.value;
+
+			if (state.key) {
+				// A new field starts in the direction that field reads best in,
+				// rather than inheriting whatever the previous one was left at.
+				state.direction = defaultDirectionFor(state.key);
+				direction.value = state.direction;
+			}
+
+			direction.disabled = !state.key;
+			emit('sort:changed');
+		});
+
+		direction.addEventListener('change', function () {
+			state.direction = direction.value === 'asc' ? 'asc' : 'desc';
+			emit('sort:changed');
+		});
+
+		return {
+			apply: apply,
+			state: state,
+			reset: function () {
+				state.key = config.defaultKey || '';
+				state.direction = state.key
+					? defaultDirectionFor(state.key)
+					: (config.defaultDirection || 'desc');
+				select.value = state.key;
+				direction.value = state.direction;
+				direction.disabled = !state.key;
+			}
+		};
+	}
+
+	/* ------------------------------------------------------- wallet kinds */
+
+	/**
+	 * What a wallet is for.
+	 *
+	 * A balance alone does not say whether money can leave the account at an ATM
+	 * or whether it is money that is already spoken for, and the type is the
+	 * difference between those two. The kind also drives the icon, so a list of
+	 * wallets is scannable before a word is read.
+	 *
+	 * Keys are stored values and must stay stable: a rename would orphan every
+	 * wallet already tagged with the old key. Labels are shown to the user.
+	 *
+	 * Icons are inline SVG rather than an icon font or an image request, for the
+	 * same reason the rest of the app has no CDN dependency: one more thing to
+	 * load, and one more thing that can fail to load. Each is drawn on a 24x24
+	 * grid with a 1.75 stroke so they sit at the same weight as the rest of the
+	 * interface.
+	 */
+	var WALLET_KINDS = {
+		bank: { label: 'Rekening bank', icon: 'bank' },
+		ewallet: { label: 'E-wallet', icon: 'phone' },
+		cash: { label: 'Tunai', icon: 'cash' },
+		savings: { label: 'Tabungan', icon: 'piggy' },
+		investment: { label: 'Investasi', icon: 'chart' },
+		credit: { label: 'Kartu kredit', icon: 'card' },
+		other: { label: 'Lainnya', icon: 'wallet' }
+	};
+
+	function walletKindLabel(kind) {
+		var entry = Object.prototype.hasOwnProperty.call(WALLET_KINDS, kind)
+			? WALLET_KINDS[kind]
+			: null;
+		return entry ? entry.label : WALLET_KINDS.other.label;
+	}
+
+	var WALLET_ICONS = {
+		bank: '<path d="M3 9.5 12 4l9 5.5"/><path d="M5 10v8"/><path d="M10 10v8"/><path d="M14 10v8"/>' +
+			'<path d="M19 10v8"/><path d="M3 20h18"/>',
+		phone: '<rect x="6" y="2.5" width="12" height="19" rx="2.5"/>' +
+			'<path d="M10.5 18.5h3"/>',
+		cash: '<rect x="2.5" y="6" width="19" height="12" rx="2"/>' +
+			'<circle cx="12" cy="12" r="2.75"/><path d="M6 9.5v5"/><path d="M18 9.5v5"/>',
+		piggy: '<path d="M4 12.5c0-3.6 3.2-6 7.4-6 1 0 2 .15 2.9.44l2.4-1.5v2.5c1 .8 1.7 1.8 2 2.9' +
+			'v2.4l-2.1.9c-.5.7-1.2 1.3-2 1.7v2.2h-2.5v-1.3c-.6.1-1.2.2-1.8.2h-1' +
+			'v1.1H7.4v-1.6C5.2 13.9 4 13.3 4 12.5Z"/><circle cx="8" cy="11" r=".6" fill="currentColor"/>',
+		chart: '<path d="M4 19.5V4.5"/><path d="M4 19.5h16"/><path d="M8 15.5V11"/>' +
+			'<path d="M12 15.5V7.5"/><path d="M16 15.5v-3"/>',
+		card: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/>' +
+			'<path d="M2.5 9.5h19"/><path d="M6 15h3.5"/>',
+		wallet: '<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h11A2.5 2.5 0 0 1 19 7.5V9"/>' +
+			'<path d="M3 7.5V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2.5"/>' +
+			'<path d="M21 10.5h-4.25a2.25 2.25 0 0 0 0 4.5H21a1 1 0 0 0 1-1v-2.5a1 1 0 0 0-1-1Z"/>'
+	};
+
+	/**
+	 * Wallet icon markup. `class` and `size` are callers' choices; the path set
+	 * comes from a fixed table, so nothing from user data reaches the markup.
+	 */
+	function walletIcon(kind, extraClass) {
+		// hasOwnProperty, not a plain lookup: WALLET_ICONS is an object literal,
+		// so '__proto__' and 'constructor' are real inherited keys and would
+		// otherwise resolve to something that is not a path.
+		var iconName = WALLET_KINDS[kind] ? WALLET_KINDS[kind].icon : 'wallet';
+		var path = Object.prototype.hasOwnProperty.call(WALLET_ICONS, iconName)
+			? WALLET_ICONS[iconName]
+			: WALLET_ICONS.wallet;
+		return '<svg class="kind-icon' + (extraClass ? ' ' + extraClass : '') + '"' +
+			' viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"' +
+			' stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"' +
+			' aria-hidden="true" focusable="false">' + path + '</svg>';
+	}
+
+	/**
+	 * A small tag with its icon, used on a wallet card and in the list of kinds.
+	 * An unknown key falls back to "Lainnya" rather than rendering an empty tag,
+	 * which is what a wallet created before the feature existed will hit.
+	 */
+	function walletKindTag(kind) {
+		var known = Object.prototype.hasOwnProperty.call(WALLET_KINDS, kind);
+		return '<span class="kind-tag' + (known ? '' : ' kind-tag--unknown') + '">' +
+			walletIcon(kind) +
+			'<span>' + escapeHtml(walletKindLabel(kind)) + '</span></span>';
+	}
+
+	/* ------------------------------------------------------- tiny event bus */
+
+	/**
+	 * The sort controls live in app.js but the lists they reorder live in each
+	 * page's own script, and neither file knows the other's variable names.
+	 * One event is cheaper than five callbacks registered by hand.
+	 */
+	var listeners = {};
+
+	function on(event, handler) {
+		(listeners[event] = listeners[event] || []).push(handler);
+	}
+
+	function emit(event, payload) {
+		(listeners[event] || []).forEach(function (handler) {
+			try {
+				handler(payload);
+			} catch (error) {
+				// One page's sort must not take the others down with it.
+				console.error('handler for ' + event + ' failed', error);
+			}
+		});
 	}
 
 	/* ---------------------------------------------------------------- toasts */
@@ -581,6 +824,13 @@
 		formatPercent: formatPercent,
 		formatDate: formatDate,
 		escapeHtml: escapeHtml,
-		renderMarkdown: renderMarkdown
+		renderMarkdown: renderMarkdown,
+		createSortControl: createSortControl,
+		WALLET_KINDS: WALLET_KINDS,
+		walletKindLabel: walletKindLabel,
+		walletIcon: walletIcon,
+		walletKindTag: walletKindTag,
+		on: on,
+		emit: emit
 	};
 })();

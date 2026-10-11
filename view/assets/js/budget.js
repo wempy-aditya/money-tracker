@@ -71,8 +71,92 @@
 			});
 	}
 
+	/**
+	 * Sorting applies to the saved view, not to the edit form below it. The form
+	 * is a set of inputs whose order follows the categories you built; rearranging
+	 * those while you are typing in them would move the field you are looking at.
+	 */
+	var sortControl = App.createSortControl({
+		selectId: 'sortBy',
+		directionId: 'sortDir',
+		fields: [
+			{ value: 'name', label: 'Nama', get: function (c) { return c.name || ''; }, defaultDirection: 'asc' },
+			{ value: 'amount', label: 'Total batas', get: function (c) {
+				return (c.subcategories || []).reduce(function (sum, sub) {
+					return sum + (Number(sub.amount) || 0);
+				}, 0);
+			}, defaultDirection: 'desc' },
+			{ value: 'used', label: 'Total terpakai', get: function (c) {
+				return (c.subcategories || []).reduce(function (sum, sub) {
+					return sum + (Number(sub.used) || 0);
+				}, 0);
+			}, defaultDirection: 'desc' },
+			{ value: 'remaining', label: 'Sisa anggaran', get: function (c) {
+				return (c.subcategories || []).reduce(function (sum, sub) {
+					return sum + ((Number(sub.amount) || 0) - (Number(sub.used) || 0));
+				}, 0);
+			}, defaultDirection: 'asc' },
+			{ value: 'percent', label: 'Persentase terpakai', get: function (c) {
+				var amount = 0;
+				var used = 0;
+				(c.subcategories || []).forEach(function (sub) {
+					amount += Number(sub.amount) || 0;
+					used += Number(sub.used) || 0;
+				});
+				return amount > 0 ? (used / amount) * 100 : -1;
+			}, defaultDirection: 'desc' }
+		]
+	});
+
+	/**
+	 * Subcategories are sorted by the same field names but need their own
+	 * accessors. A category has an amount in its children; a subcategory has it
+	 * directly. Sharing the accessors would silently sort every subcategory by
+	 * zero, which looks like the sort did nothing.
+	 */
+	var subSort = {
+		name: function (sub) { return sub.name || ''; },
+		amount: function (sub) { return Number(sub.amount) || 0; },
+		used: function (sub) { return Number(sub.used) || 0; },
+		remaining: function (sub) { return (Number(sub.amount) || 0) - (Number(sub.used) || 0); },
+		percent: function (sub) {
+			var amount = Number(sub.amount) || 0;
+			return amount > 0 ? ((Number(sub.used) || 0) / amount) * 100 : -1;
+		}
+	};
+
+	function sortSubcategories(subs) {
+		var key = sortControl && sortControl.state.key;
+		var get = key && subSort[key];
+		if (!get) return subs;
+
+		var sign = sortControl.state.direction === 'asc' ? 1 : -1;
+
+		return subs.slice().sort(function (a, b) {
+			var left = get(a);
+			var right = get(b);
+
+			if (left == null && right == null) return 0;
+			if (left == null) return 1;
+			if (right == null) return -1;
+
+			if (typeof left === 'number' && typeof right === 'number') {
+				return (left - right) * sign;
+			}
+
+			return String(left).localeCompare(String(right), 'id', { numeric: true }) * sign;
+		});
+	}
+
+	var lastBudget = null;
+
+	App.on('sort:changed', function () {
+		if (lastBudget) displayBudget(lastBudget);
+	});
+
 	function displayBudget(budget) {
 		var host = document.getElementById('budgetOutput');
+		lastBudget = budget;
 		var categories = budget.categories || [];
 
 		if (categories.length === 0) {
@@ -85,7 +169,16 @@
 		var totalBudget = 0;
 		var totalUsed = 0;
 
-		var html = categories.map(function (category) {
+		// Sort a copy of the categories and of each category's subcategories. The
+		// originals keep their order so saving an edit does not rewrite the whole
+		// budget in the order someone happened to be reading it in.
+		var view = sortControl ? sortControl.apply(categories) : categories;
+
+		view = view.map(function (category) {
+			return Object.assign({}, category, { subcategories: sortSubcategories(category.subcategories || []) });
+		});
+
+		var html = view.map(function (category) {
 			var subcategories = category.subcategories || [];
 			var categoryTotal = 0;
 			var categoryUsed = 0;

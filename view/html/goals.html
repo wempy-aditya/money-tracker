@@ -109,6 +109,17 @@
                 <h1>Target</h1>
                 <p>Tabungan dan target yang sedang dikejar.</p>
             </div>
+
+        <div class="toolbar mb-16">
+            <div class="sort-control">
+                <label class="sort-control__label" for="sortBy">Urutkan</label>
+                <select class="select" id="sortBy" aria-label="Urutkan berdasarkan"></select>
+                <select class="select" id="sortDir" aria-label="Arah pengurutan" disabled>
+                    <option value="desc">Terbesar / terbaru dulu</option>
+                    <option value="asc">Terkecil / terlama dulu</option>
+                </select>
+            </div>
+        </div>
             <button class="btn btn--primary" type="button" onclick="openAddModal()">Buat target</button>
         </div>
 

@@ -53,6 +53,14 @@
             </div>
             <div class="toolbar" style="margin:0">
                 <input class="input" type="date" id="throughDate" aria-label=" jalankan sampai tanggal" />
+                <div class="sort-control">
+                    <label class="sort-control__label" for="sortBy">Urutkan</label>
+                    <select class="select" id="sortBy" aria-label="Urutkan berdasarkan"></select>
+                    <select class="select" id="sortDir" aria-label="Arah pengurutan" disabled>
+                        <option value="desc">Terbesar / terbaru dulu</option>
+                        <option value="asc">Terkecil / terlama dulu</option>
+                    </select>
+                </div>
                 <button class="btn btn--primary" type="button" onclick="openAddRuleModal()">Tambah aturan</button>
                 <button class="btn btn--secondary" type="button" id="runRulesButton"
                     onclick="runDueRules()">Jalankan yang jatuh tempo</button>

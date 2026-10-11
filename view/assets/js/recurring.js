@@ -89,6 +89,33 @@
 		return parts.length ? parts.join(' / ') : 'tanpa kategori';
 	}
 
+	/**
+	 * A recurring list is read to answer two questions: what is about to be
+	 * charged, and what has already run. Both are fields here, and so is the
+	 * amount, which is the one people actually sort by when checking a bill.
+	 */
+	var sortControl = App.createSortControl({
+		selectId: 'sortBy',
+		directionId: 'sortDir',
+		fields: [
+			{ value: 'name', label: 'Nama aturan', get: function (r) { return r.name || ''; }, defaultDirection: 'asc' },
+			{ value: 'amount', label: 'Jumlah', get: function (r) { return Number(r.amount) || 0; }, defaultDirection: 'desc' },
+			// Sorted by how often it fires rather than by the word, so "setiap
+			// hari" lands above "setiap bulan" the way the list reads.
+			{ value: 'frequency', label: 'Frekuensi', get: function (r) {
+				var rank = { daily: 1, weekly: 2, monthly: 3, yearly: 4 };
+				return rank[r.frequency] || 9;
+			}, defaultDirection: 'asc' },
+			{ value: 'lastRunDate', label: 'Terakhir dijalankan', get: function (r) { return r.lastRunDate || ''; }, defaultDirection: 'desc' },
+			{ value: 'createdAt', label: 'Dibuat', get: function (r) { return r.createdAt || ''; }, defaultDirection: 'desc' },
+			{ value: 'active', label: 'Status', get: function (r) { return r.active ? 1 : 0; }, defaultDirection: 'desc' }
+		]
+	});
+
+	App.on('sort:changed', function () {
+		if (rules.length) renderRules();
+	});
+
 	function renderRules() {
 		var host = document.getElementById('ruleList');
 		if (!host) return;
@@ -102,7 +129,9 @@
 			return;
 		}
 
-		host.innerHTML = rules.map(function (rule) {
+		var sorted = sortControl ? sortControl.apply(rules) : rules;
+
+		host.innerHTML = sorted.map(function (rule) {
 			var walletName = walletNameOf(rule.walletId);
 			var tone = rule.type === 'income' ? 'stat--positive' : 'stat--negative';
 			var status = rule.active

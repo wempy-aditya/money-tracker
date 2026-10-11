@@ -134,6 +134,14 @@
             </div>
             <div class="toolbar" style="margin:0">
                 <input class="input" type="month" id="month" aria-label="Pilih bulan" />
+                <div class="sort-control">
+                    <label class="sort-control__label" for="sortBy">Urutkan</label>
+                    <select class="select" id="sortBy" aria-label="Urutkan berdasarkan"></select>
+                    <select class="select" id="sortDir" aria-label="Arah pengurutan" disabled>
+                        <option value="desc">Terbesar / terbaru dulu</option>
+                        <option value="asc">Terkecil / terlama dulu</option>
+                    </select>
+                </div>
                 <button class="btn btn--secondary" type="button" id="exportButton" onclick="exportData()">Ekspor</button>
                 <select class="select" id="exportDropdown" style="display:none" aria-label="Format ekspor"></select>
                 <button class="btn btn--primary" type="button" id="saveBudgetButton" hidden>Ubah anggaran</button>

@@ -51,6 +51,28 @@
 		node.className = 'stat__value ' + (net >= 0 ? 'text-positive' : 'text-negative');
 	}
 
+	/**
+	 * Sorting happens here rather than on the server: the whole month is already
+	 * in memory to render it, and a sort that resets on every refetch is a sort
+	 * you cannot use.
+	 */
+	var sortControl = App.createSortControl({
+		selectId: 'sortBy',
+		directionId: 'sortDir',
+		fields: [
+			{ value: 'date', label: 'Tanggal', get: function (t) { return t.date; }, defaultDirection: 'desc' },
+			{ value: 'amount', label: 'Jumlah', get: function (t) { return Number(t.amount) || 0; }, defaultDirection: 'desc' },
+			{ value: 'category', label: 'Kategori', get: function (t) { return t.category || ''; }, defaultDirection: 'asc' },
+			{ value: 'description', label: 'Keterangan', get: function (t) { return t.description || ''; }, defaultDirection: 'asc' }
+		]
+	});
+
+	// Re-render from the data already held, so changing the sort does not
+	// refetch and does not reset the month.
+	App.on('sort:changed', function () {
+		if (currentTransactions.length) render(currentTransactions);
+	});
+
 	function render(transactions) {
 		var body = document.getElementById('transactionList');
 
@@ -61,17 +83,28 @@
 			return;
 		}
 
+		currentTransactions = transactions;
+
+		// Sorted first, then grouped: sorting the groups alone would leave the
+		// rows inside each day in whatever order the API sent them, so switching
+		// to "sort by amount" would reorder the days and nothing else.
+		var sorted = sortControl ? sortControl.apply(transactions) : transactions;
+
 		// Group by date so the list reads like a statement.
 		var groups = {};
 		var order = [];
-		transactions.forEach(function (transaction) {
+		sorted.forEach(function (transaction) {
 			if (!groups[transaction.date]) {
 				groups[transaction.date] = [];
 				order.push(transaction.date);
 			}
 			groups[transaction.date].push(transaction);
 		});
-		order.sort(function (a, b) { return b.localeCompare(a); });
+		// When no sort is chosen the list keeps reading like a statement: newest
+		// day first. Once a sort is chosen, the days follow the rows.
+		if (!sortControl || !sortControl.state.key) {
+			order.sort(function (a, b) { return b.localeCompare(a); });
+		}
 
 		var html = '';
 		order.forEach(function (date) {
@@ -104,6 +137,9 @@
 	}
 
 	/* -------------------------------------------------------------- loading */
+
+	// The rows as they arrived, before any sorting, so a re-render can start over.
+	var currentTransactions = [];
 
 	function loadWallets() {
 		return App.api('/api/wallets').then(function (data) {

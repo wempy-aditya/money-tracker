@@ -12,6 +12,32 @@ const transfersCollection = db.collection('transfers');
 // (bug #4). The owner now comes from the session only.
 const ownerOf = (req) => req.auth.userId;
 
+/**
+ * What a wallet can be for.
+ *
+ * The stored value is the key, not the label, so a label can be reworded later
+ * without stranding every wallet already tagged with the old text. The same
+ * table is exposed to the browser as App.WALLET_KINDS; if the two ever disagree,
+ * the test that reads both fails rather than a user meeting an icon they cannot
+ * click.
+ *
+ * Anything outside this list is rejected on write rather than quietly stored:
+ * a wallet whose kind nothing recognises would render as a blank tag and sort
+ * nowhere.
+ */
+const WALLET_KINDS = ['bank', 'ewallet', 'cash', 'savings', 'investment', 'credit', 'other'];
+const DEFAULT_KIND = 'other';
+
+/** The field is optional; omitting it means "other", never an error. */
+function readKind(body, fallback) {
+  const kind = body.kind === undefined || body.kind === null || body.kind === ''
+    ? (fallback === undefined ? DEFAULT_KIND : fallback)
+    : String(body.kind);
+
+  if (!WALLET_KINDS.includes(kind)) return { error: `Unknown wallet kind: ${kind}` };
+  return { kind };
+}
+
 // 🔹 Tambah dompet baru
 router.post('/', async (req, res) => {
   try {
@@ -24,9 +50,16 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Frozen amount must be zero or more' });
     }
 
+    const parsedKind = readKind(req.body);
+    if (parsedKind.error) {
+      return res.status(400).json({ error: parsedKind.error });
+    }
+
     const userId = ownerOf(req);
-    const docRef = await walletsCollection.add({ userId, name, balance, frozen });
-    res.status(201).json({ id: docRef.id, userId, name, balance, frozen });
+    const docRef = await walletsCollection.add({
+      userId, name, balance, frozen, kind: parsedKind.kind
+    });
+    res.status(201).json({ id: docRef.id, userId, name, balance, frozen, kind: parsedKind.kind });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -36,7 +69,17 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const snapshot = await walletsCollection.where('userId', '==', ownerOf(req)).get();
-    const wallets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const wallets = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        // A wallet created before kinds existed has no `kind` at all. Sending it
+        // through the default here means the browser never has to second-guess
+        // whether the field is missing or empty.
+        kind: data.kind || DEFAULT_KIND
+      };
+    });
     res.status(200).json(wallets);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -56,7 +99,20 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Wallet not found' });
     }
 
-    await walletRef.update({ name, balance, frozen });
+    const update = {};
+    if (name !== undefined) update.name = name;
+    if (balance !== undefined) update.balance = balance;
+    if (frozen !== undefined) update.frozen = frozen;
+
+    if (req.body.kind !== undefined) {
+      const parsedKind = readKind(req.body, existing.data().kind);
+      if (parsedKind.error) {
+        return res.status(400).json({ error: parsedKind.error });
+      }
+      update.kind = parsedKind.kind;
+    }
+
+    await walletRef.update(update);
     res.status(200).json({ message: 'Wallet updated' });
   } catch (error) {
     res.status(500).json({ error: error.message });
