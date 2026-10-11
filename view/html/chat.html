@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asisten - Daily Money Tracker</title>
+    <link rel="stylesheet" href="/assets/css/app.css" />
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav__inner">
+            <a class="nav__brand" href="/home">
+                <span class="nav__mark" aria-hidden="true">Rp</span>
+                <span>Money Tracker</span>
+            </a>
+            <div class="nav__links">
+                <a class="nav__link" href="/home">Dashboard</a>
+                <a class="nav__link" href="/wallet">Dompet</a>
+                <a class="nav__link" href="/transactions">Transaksi</a>
+                <a class="nav__link" href="/budget">Anggaran</a>
+                <a class="nav__link" href="/goals">Target</a>
+                <a class="nav__link" href="/recurring">Aturan</a>
+                <a class="nav__link" href="/insights">Insights</a>
+                <a class="nav__link" href="/chat" aria-current="page">Asisten</a>
+                <a class="nav__link" href="/profile">Profil</a>
+                <a class="nav__link" href="/settings">Pengaturan</a>
+            </div>
+            <div class="nav__actions">
+                <span class="nav__user" id="currentUser"></span>
+                <button class="icon-btn" type="button" data-theme-toggle aria-label="Ganti tema">&#9681;</button>
+                <button class="icon-btn" type="button" data-sign-out aria-label="Keluar" title="Keluar">&#9099;</button>
+                <button class="nav__toggle" type="button" data-nav-toggle aria-expanded="false"
+                    aria-label="Buka menu">&#9776;</button>
+            </div>
+        </div>
+        <div class="nav__drawer" data-nav-drawer data-open="false">
+            <a class="nav__link" href="/home">Dashboard</a>
+            <a class="nav__link" href="/wallet">Dompet</a>
+            <a class="nav__link" href="/transactions">Transaksi</a>
+            <a class="nav__link" href="/budget">Anggaran</a>
+            <a class="nav__link" href="/goals">Target</a>
+            <a class="nav__link" href="/recurring">Aturan</a>
+            <a class="nav__link" href="/insights">Insights</a>
+            <a class="nav__link" href="/chat" aria-current="page">Asisten</a>
+            <a class="nav__link" href="/profile">Profil</a>
+            <a class="nav__link" href="/settings">Pengaturan</a>
+        </div>
+    </nav>
+
+    <main class="page page--chat">
+        <div class="page-head">
+            <div class="page-head__text">
+                <h1>Asisten keuangan</h1>
+                <p>Menjawab dari data yang tercatat di aplikasi ini. Asisten tidak dapat membuat transaksi atau
+                    memindahkan uang, sarannya tetap perlu Anda kerjakan sendiri.</p>
+            </div>
+            <div class="toolbar">
+                <button class="btn btn--ghost" type="button" id="clearChatButton">Hapus riwayat</button>
+            </div>
+        </div>
+
+        <div class="card card--setup" id="setupNotice" hidden>
+            <div class="card__body">
+                <h2 class="panel__title">Belum terhubung</h2>
+                <p class="rule-card__meta" id="setupHint"></p>
+                <a class="btn btn--primary mt-16" href="/settings">Buka Pengaturan</a>
+            </div>
+        </div>
+
+        <div class="chat" id="chatLog" aria-live="polite" aria-label="Riwayat percakapan"></div>
+
+        <div class="card mt-24">
+            <div class="card__body">
+                <div class="chat__suggestions" id="suggestions"></div>
+                <form id="chatForm" class="chat__composer mt-16">
+                    <label class="sr-only" for="chatInput">Pertanyaan Anda</label>
+                    <textarea class="input chat__input" id="chatInput" rows="2" maxlength="4000"
+                        placeholder="Contoh: apakah saya bisa beli laptop Rp8 juta bulan ini?" required></textarea>
+                    <button class="btn btn--primary" type="submit" id="chatSendButton">Kirim</button>
+                </form>
+                <p class="field__hint mt-16">Setiap pertanyaan dan jawaban tersimpan, dan dipakai sebagai konteks
+                    pertanyaan berikutnya.</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="/assets/js/app.js"></script>
+    <script src="/assets/js/chat.js"></script>
+</body>
+
+</html>

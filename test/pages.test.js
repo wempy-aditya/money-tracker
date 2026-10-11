@@ -174,7 +174,12 @@ test('pages do not hardcode an origin or a user id', () => {
 	for (const page of PAGES) {
 		const html = readPage(page);
 		const js = allScriptsFor(html);
-		for (const [source, text] of [['markup', html], ['scripts', js]]) {
+		// Scripts are checked whole: that is where a request would actually be
+		// made. In markup, a literal address inside <code> is an instruction the
+		// user copies (a local Ollama URL, for example), not an origin the page
+		// will contact, so that text is excluded rather than the check weakened.
+		const markup = html.replace(/<code\b[^>]*>[\s\S]*?<\/code>/gi, '<code></code>');
+		for (const [source, text] of [['markup', markup], ['scripts', js]]) {
 			if (/https?:\/\/(localhost|127\.0\.0\.1)/.test(text)) {
 				offenders.push(`${page} (${source}): hardcoded localhost`);
 			}

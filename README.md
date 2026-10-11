@@ -96,6 +96,15 @@ POST   /api/recurring/run
 
 GET    /api/insights             GET /api/insights/simulate
 
+GET    /api/profile              PUT /api/profile
+GET    /api/profile/completeness
+
+GET    /api/settings              PUT /api/settings
+POST   /api/settings/test
+
+GET    /api/chat                  POST /api/chat
+DELETE /api/chat                  GET  /api/chat/suggestions
+
 GET    /api/analytics/income-expense/:userId/:month
 GET    /api/analytics/wallets/:userId
 GET    /api/analytics/budget-vs-actual/:userId/:month
@@ -217,7 +226,7 @@ npm test
 ```
 
 ```text
-156 tests
+181 tests
 ```
 
 | File | Covers |
@@ -228,6 +237,7 @@ npm test
 | `recurring.test.js` | Date generation, retries, watermark, transfer history |
 | `insights.test.js` | The four analyses, edge cases, cross-user isolation |
 | `pages.test.js` | Every page against its script: handlers, ids, routes, CDN |
+| `profile-chat.test.js` | Profile, settings, advisor chat, key handling, isolation |
 
 The suite runs against its own database file (`data/test-run.db`) and with
 `--test-concurrency=1`, because every test file opens the same file-backed SQLite
@@ -237,9 +247,67 @@ Fixture numbers in the insights and recurring tests are chosen so each expected
 value can be checked by hand. Where a test asserts an exact figure, the comment
 next to it shows the arithmetic.
 
+## The AI advisor
+
+`/chat` talks to any OpenAI-compatible endpoint: hosted services, a local Ollama,
+LM Studio, or a vLLM server. You enter the URL, model name and key yourself on
+`/settings`; nothing is hardcoded and no request leaves the machine except the one
+you configure.
+
+The assistant is **read-only by design**. It receives no tool definitions and no
+write endpoint is reachable from it, so it cannot create a transaction, move money,
+or change a budget no matter what the conversation says. "Buy this laptop for me"
+gets advice, and the purchase happens because you recorded it yourself.
+
+### What it can actually see
+
+Every question is answered with a context block assembled from the database, not
+from your prose:
+
+```text
+PROFIL PENGGUNA            from /api/profile
+KONDISI KEUANGAN SAAT INI  total balance, frozen funds, usable
+TREN 6 BULAN TERAKHIR     income, expense, ratio and top categories per month
+N TRANSAKSI TERBARU       the most recent ones, capped at 40
+```
+
+Each section states its own coverage. When only one month has transactions, the
+context says so, because a model handed a six-row table tends to read it as six
+months of activity. Where the profile is empty it is told the profile is empty
+rather than being asked to answer as if it knew you.
+
+### History and cost
+
+Every question and answer is stored, including the ones that failed. Older turns
+are summarised extractively (what was asked, what was answered) and only the last
+20 are sent verbatim, so a long conversation does not grow without bound. The
+summary is built in this codebase rather than by a second model call, which avoids
+a second chance to invent something.
+
+```text
+GET /api/chat              newest first, limit 50 (max 200)
+DELETE /api/chat           clears the whole history
+```
+
+### The API key
+
+Stored in plain text in the local database, never encrypted. In exchange it is
+write-only over HTTP: `readSettings()` never selects the column's value, only
+whether it is set, so no route can return it by accident, and `GET /api/settings`
+answers with `has_key: true` and nothing else. The settings form leaves the key field blank, and an untouched field
+is not sent, so saving an unrelated value cannot clear it.
+
+If this ever runs somewhere other than your own machine, encrypt the column with a
+key from the environment, or stop storing it.
+
 ## Known gaps
 
 ```text
+The AI advisor has never been run against a real provider. Every test stubs the
+  HTTP call, so the request shape, the context block and the response parsing are
+  verified, but no real model has answered yet. Expect to adjust something on
+  first real use, most likely the model name or the URL shape.
+
 Layout on phones is not visually verified. The CSS collapses to one column and
   the inputs are 16px, but no automated check can resize a viewport. Worth one
   look on a real phone before trusting a layout change.
@@ -257,7 +325,9 @@ main has not been fast-forwarded to the feature branches. Everything is pushed,
 server.js            mounts routes, serves pages, resolves LAN addresses
 db/firestore.js      Firestore-compatible shim over SQLite
 db/auth.js           scrypt, sessions, ownership
+db/profile.js        profiles, LLM settings, chat history
 db/transactions.js   the single write path shared by manual entry and rules
+services/llm.js      OpenAI-compatible client and the context builder
 routes/              one file per resource
 view/html/           one file per page
 view/assets/js/      one file per page

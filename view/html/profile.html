@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profil - Daily Money Tracker</title>
+    <link rel="stylesheet" href="/assets/css/app.css" />
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav__inner">
+            <a class="nav__brand" href="/home">
+                <span class="nav__mark" aria-hidden="true">Rp</span>
+                <span>Money Tracker</span>
+            </a>
+            <div class="nav__links">
+                <a class="nav__link" href="/home">Dashboard</a>
+                <a class="nav__link" href="/wallet">Dompet</a>
+                <a class="nav__link" href="/transactions">Transaksi</a>
+                <a class="nav__link" href="/budget">Anggaran</a>
+                <a class="nav__link" href="/goals">Target</a>
+                <a class="nav__link" href="/recurring">Aturan</a>
+                <a class="nav__link" href="/insights">Insights</a>
+                <a class="nav__link" href="/chat">Asisten</a>
+                <a class="nav__link" href="/profile" aria-current="page">Profil</a>
+                <a class="nav__link" href="/settings">Pengaturan</a>
+            </div>
+            <div class="nav__actions">
+                <span class="nav__user" id="currentUser"></span>
+                <button class="icon-btn" type="button" data-theme-toggle aria-label="Ganti tema">&#9681;</button>
+                <button class="icon-btn" type="button" data-sign-out aria-label="Keluar" title="Keluar">&#9099;</button>
+                <button class="nav__toggle" type="button" data-nav-toggle aria-expanded="false"
+                    aria-label="Buka menu">&#9776;</button>
+            </div>
+        </div>
+        <div class="nav__drawer" data-nav-drawer data-open="false">
+            <a class="nav__link" href="/home">Dashboard</a>
+            <a class="nav__link" href="/wallet">Dompet</a>
+            <a class="nav__link" href="/transactions">Transaksi</a>
+            <a class="nav__link" href="/budget">Anggaran</a>
+            <a class="nav__link" href="/goals">Target</a>
+            <a class="nav__link" href="/recurring">Aturan</a>
+            <a class="nav__link" href="/insights">Insights</a>
+            <a class="nav__link" href="/chat">Asisten</a>
+            <a class="nav__link" href="/profile" aria-current="page">Profil</a>
+            <a class="nav__link" href="/settings">Pengaturan</a>
+        </div>
+    </nav>
+
+    <main class="page">
+        <div class="page-head">
+            <div class="page-head__text">
+                <h1>Profil</h1>
+                <p>Data yang dibaca asisten keuangan untuk memberi saran yang sesuai kondisi
+                    Anda. Semua opsional, tapi semakin lengkap semakin relevan sarannya.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card__head">
+                <div>
+                    <h2 class="panel__title">Kelengkapan profil</h2>
+                    <p class="rule-card__meta" id="completenessLine">Memuat...</p>
+                </div>
+            </div>
+            <div class="card__body">
+                <div class="progress"><div class="progress__fill" id="completenessBar" style="width:0%"></div></div>
+                <p class="field__hint mt-24" id="completenessHint"></p>
+            </div>
+        </div>
+
+        <form id="profileForm" class="mt-24">
+            <div class="card">
+                <div class="card__head">
+                    <h2 class="panel__title">Identitas</h2>
+                </div>
+                <div class="card__body grid-2">
+                    <div class="field">
+                        <label class="field__label" for="display_name">Nama panggilan</label>
+                        <input class="input" type="text" id="display_name" maxlength="500"
+                            placeholder="Nama yang ingin dipanggil" />
+                    </div>
+                    <div class="field">
+                        <label class="field__label" for="age">Usia</label>
+                        <input class="input" type="number" id="age" min="0" max="120" placeholder="27" />
+                    </div>
+                    <div class="field">
+                        <label class="field__label" for="occupation">Pekerjaan</label>
+                        <input class="input" type="text" id="occupation" maxlength="500"
+                            placeholder="Software engineer" />
+                    </div>
+                    <div class="field">
+                        <label class="field__label" for="position">Posisi atau jabatan</label>
+                        <input class="input" type="text" id="position" maxlength="500"
+                            placeholder="Backend engineer" />
+                    </div>
+                    <div class="field">
+                        <label class="field__label" for="education">Pendidikan</label>
+                        <input class="input" type="text" id="education" maxlength="500"
+                            placeholder="S1 Informatika" />
+                    </div>
+                    <div class="field">
+                        <label class="field__label" for="dependents">Jumlah tanggungan</label>
+                        <input class="input" type="number" id="dependents" min="0" max="50"
+                            placeholder="0" />
+                    </div>
+                    <div class="field">
+                        <label class="field__label" for="hobbies">Hobi</label>
+                        <input class="input" type="text" id="hobbies" maxlength="500"
+                            placeholder="Gitar, membaca" />
+                    </div>
+                    <div class="field">
+                        <label class="field__label" for="risk_tolerance">Profil risiko</label>
+                        <select class="select" id="risk_tolerance">
+                            <option value="">Belum diisi</option>
+                            <option value="Konservatif">Konservatif</option>
+                            <option value="Menengah">Menengah</option>
+                            <option value="Agresif">Agresif</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-24">
+                <div class="card__head">
+                    <h2 class="panel__title">Kondisi keuangan</h2>
+                </div>
+                <div class="card__body">
+                    <div class="field">
+                        <label class="field__label" for="monthly_commitments">Komitmen bulanan tetap</label>
+                        <textarea class="input" id="monthly_commitments" rows="3" maxlength="500"
+                            placeholder="Sewa 2 juta, listrik, internet, cicilan HP"></textarea>
+                        <p class="field__hint">Dana yang selalu keluar tiap bulan, di luar kebutuhan sehari-hari.</p>
+                    </div>
+                    <div class="field mt-24">
+                        <label class="field__label" for="financial_goals">Tujuan keuangan</label>
+                        <textarea class="input" id="financial_goals" rows="3" maxlength="500"
+                            placeholder="Dana darurat 6 bulan, beli rumah,dana pendidikan"></textarea>
+                        <p class="field__hint">Disertai target waktu dan jumlahnya kalau ada.</p>
+                    </div>
+                    <div class="field mt-24">
+                        <label class="field__label" for="background">Latar belakang</label>
+                        <textarea class="input" id="background" rows="3" maxlength="500"
+                            placeholder="Bekerja sejak tahun berapa, freelance, contract, atau lainnya"></textarea>
+                    </div>
+                    <div class="field mt-24">
+                        <label class="field__label" for="notes">Catatan lain</label>
+                        <textarea class="input" id="notes" rows="3" maxlength="500"
+                            placeholder="Hal yang perlu dipertimbangkan penasihat."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <p class="form-error mt-16" id="profileError" role="alert" hidden></p>
+
+            <div class="toolbar mt-24">
+                <button class="btn btn--primary" type="submit" id="saveProfileButton">Simpan profil</button>
+                <button class="btn btn--ghost" type="button" onclick="loadProfile()">Muat ulang</button>
+            </div>
+        </form>
+    </main>
+
+    <script src="/assets/js/app.js"></script>
+    <script src="/assets/js/profile.js"></script>
+</body>
+
+</html>

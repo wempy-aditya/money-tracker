@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pengaturan - Daily Money Tracker</title>
+    <link rel="stylesheet" href="/assets/css/app.css" />
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav__inner">
+            <a class="nav__brand" href="/home">
+                <span class="nav__mark" aria-hidden="true">Rp</span>
+                <span>Money Tracker</span>
+            </a>
+            <div class="nav__links">
+                <a class="nav__link" href="/home">Dashboard</a>
+                <a class="nav__link" href="/wallet">Dompet</a>
+                <a class="nav__link" href="/transactions">Transaksi</a>
+                <a class="nav__link" href="/budget">Anggaran</a>
+                <a class="nav__link" href="/goals">Target</a>
+                <a class="nav__link" href="/recurring">Aturan</a>
+                <a class="nav__link" href="/insights">Insights</a>
+                <a class="nav__link" href="/chat">Asisten</a>
+                <a class="nav__link" href="/profile">Profil</a>
+                <a class="nav__link" href="/settings" aria-current="page">Pengaturan</a>
+            </div>
+            <div class="nav__actions">
+                <span class="nav__user" id="currentUser"></span>
+                <button class="icon-btn" type="button" data-theme-toggle aria-label="Ganti tema">&#9681;</button>
+                <button class="icon-btn" type="button" data-sign-out aria-label="Keluar" title="Keluar">&#9099;</button>
+                <button class="nav__toggle" type="button" data-nav-toggle aria-expanded="false"
+                    aria-label="Buka menu">&#9776;</button>
+            </div>
+        </div>
+        <div class="nav__drawer" data-nav-drawer data-open="false">
+            <a class="nav__link" href="/home">Dashboard</a>
+            <a class="nav__link" href="/wallet">Dompet</a>
+            <a class="nav__link" href="/transactions">Transaksi</a>
+            <a class="nav__link" href="/budget">Anggaran</a>
+            <a class="nav__link" href="/goals">Target</a>
+            <a class="nav__link" href="/recurring">Aturan</a>
+            <a class="nav__link" href="/insights">Insights</a>
+            <a class="nav__link" href="/chat">Asisten</a>
+            <a class="nav__link" href="/profile">Profil</a>
+            <a class="nav__link" href="/settings" aria-current="page">Pengaturan</a>
+        </div>
+    </nav>
+
+    <main class="page">
+        <div class="page-head">
+            <div class="page-head__text">
+                <h1>Pengaturan AI</h1>
+                <p>Hubungkan penyedia LLM. Format OpenAI-compatible, jadi bisa dipakai dengan
+                    layanan cloud maupun yang jalan di komputer sendiri.</p>
+            </div>
+            <div class="toolbar">
+                <span class="badge badge--muted" id="connectionBadge">Belum diperiksa</span>
+            </div>
+        </div>
+
+        <form id="settingsForm">
+        <div class="card">
+            <div class="card__body">
+                <div class="field">
+                    <label class="field__label" for="api_url">URL API</label>
+                    <input class="input" type="url" id="api_url" placeholder="https://api.openai.com/v1" />
+                    <p class="field__hint">Akhiri dengan /v1 untuk layanan cloud. Untuk Ollama di komputer
+                        sendiri: <code>http://127.0.0.1:11434/v1</code></p>
+                </div>
+                <div class="field mt-24">
+                    <label class="field__label" for="model">Nama model</label>
+                    <input class="input" type="text" id="model" placeholder="llama3" />
+                </div>
+                <div class="field mt-24">
+                    <label class="field__label" for="api_key">API key</label>
+                    <input class="input" type="password" id="api_key" autocomplete="off"
+                        placeholder="Kosongkan kalau tidak ingin mengubahnya" />
+                    <p class="field__hint" id="keyHint">Disimpan di database lokal. Tidak pernah dikirim
+                        kembali ke browser setelah disimpan.</p>
+                </div>
+
+                <details class="advanced mt-24">
+                    <summary>Pengaturan lanjutan</summary>
+                    <div class="grid-2 mt-16">
+                        <div class="field">
+                            <label class="field__label" for="temperature">Temperature</label>
+                            <input class="input" type="number" id="temperature" min="0" max="2" step="0.1"
+                                placeholder="0.7" />
+                            <p class="field__hint">Makin rendah, makin konsisten dan tidak banyak menebak.</p>
+                        </div>
+                        <div class="field">
+                            <label class="field__label" for="max_tokens">Max tokens</label>
+                            <input class="input" type="number" id="max_tokens" min="64" max="32000" step="64"
+                                placeholder="1024" />
+                        </div>
+                    </div>
+                </details>
+
+                <p class="form-error mt-16" id="settingsError" role="alert" hidden></p>
+                <p class="form-success mt-16" id="settingsSuccess" role="status" hidden></p>
+
+                <div class="toolbar mt-24">
+                    <button class="btn btn--primary" type="submit" id="saveSettingsButton">Simpan</button>
+                    <button class="btn btn--ghost" type="button" id="testConnectionButton">Uji koneksi</button>
+                    <button class="btn btn--ghost" type="button" id="clearKeyButton" hidden>Hapus API key</button>
+                </div>
+            </div>
+        </div>
+        </form>
+
+        <div class="card mt-24">
+            <div class="card__head">
+                <h2 class="panel__title">Yang perlu diketahui</h2>
+            </div>
+            <div class="card__body">
+                <ul class="detail-list">
+                    <li>Asisten hanya bisa membaca data. Tidak bisa membuat transaksi, memindahkan uang,
+                        atau mengubah anggaran.</li>
+                    <li>Setiap pertanyaan dan jawaban tersimpan di database lokal dan ikut dibaca sebagai
+                        konteks pertanyaan berikutnya.</li>
+                    <li>Isi <a href="/profile">profil</a> dulu kalau mau sarannya lebih sesuai kondisi Anda.</li>
+                    <li>Untuk layanan lokal tanpa API key, biarkan kolom key kosong.</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <script src="/assets/js/app.js"></script>
+    <script src="/assets/js/settings.js"></script>
+</body>
+
+</html>

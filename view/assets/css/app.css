@@ -1248,3 +1248,238 @@ a:hover {
 		scroll-behavior: auto !important;
 	}
 }
+
+/* ---------------------------------------------------- profile, settings, chat
+   Every token below already exists in :root, and both themes redefine them, so
+   these rules are written once and inherit light and dark without a second copy.
+*/
+
+.mt-16 {
+	margin-top: 16px;
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.form-success {
+	margin: 0;
+	padding: 10px 14px;
+	border-radius: var(--radius-control);
+	background: var(--positive-soft);
+	color: var(--positive);
+	font-size: 13px;
+}
+
+.advanced {
+	border: 1px solid var(--border);
+	border-radius: var(--radius-surface);
+	padding: 14px 16px;
+	background: var(--surface-raised);
+}
+
+.advanced > summary {
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.advanced > summary:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.detail-list {
+	margin: 0;
+	padding-left: 20px;
+	color: var(--text-secondary);
+	font-size: 14px;
+	line-height: 1.65;
+}
+
+.detail-list li + li {
+	margin-top: 6px;
+}
+
+.detail-list a {
+	color: var(--accent-text);
+}
+
+.badge--ok {
+	background: var(--positive-soft);
+	color: var(--positive);
+}
+
+.badge--muted {
+	background: var(--surface-sunken);
+	color: var(--text-secondary);
+}
+
+.badge--danger {
+	background: var(--negative-soft);
+	color: var(--negative);
+}
+
+.card--setup {
+	border-left: 3px solid var(--warning);
+}
+
+/* ------------------------------------------------------------------- chat */
+
+.page--chat {
+	max-width: 860px;
+}
+
+.chat {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	min-height: 220px;
+	max-height: 58vh;
+	overflow-y: auto;
+	padding: 20px;
+	background: var(--surface-raised);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-surface);
+}
+
+.chat__msg {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-width: 82%;
+}
+
+.chat__msg--user {
+	align-self: flex-end;
+	align-items: flex-end;
+}
+
+.chat__msg--ai {
+	align-self: flex-start;
+}
+
+.chat__who {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+.chat__bubble {
+	padding: 10px 14px;
+	border-radius: var(--radius-control);
+	font-size: 14px;
+	line-height: 1.6;
+	/* Provider text is untrusted, and long unbroken strings must not push the
+	   bubble wider than the column. */
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.chat__msg--user .chat__bubble {
+	background: var(--accent-surface);
+	/* Not --text-inverse: the dark theme redefines it to near-black (#12141a),
+	   which is 3.56:1 on the accent fill. White is 4.55:1 there and 5.17:1 in
+	   light, so it passes AA in both. */
+	color: #ffffff;
+	border-bottom-right-radius: 2px;
+}
+
+.chat__msg--ai .chat__bubble {
+	background: var(--surface-sunken);
+	color: var(--text-primary);
+	border-bottom-left-radius: 2px;
+}
+
+.chat__bubble--pending {
+	/* --text-muted is 4.16:1 here and this is 14px body text, so it fails AA.
+	   --text-secondary clears it at 6.49:1 without introducing a token. */
+	color: var(--text-secondary);
+	font-style: italic;
+}
+
+.chat__bubble--error {
+	background: var(--negative-soft);
+	color: var(--negative);
+	border-bottom-left-radius: 2px;
+}
+
+.chat__time {
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+.chat__suggestions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.chip {
+	padding: 6px 12px;
+	border: 1px solid var(--border-strong);
+	border-radius: 999px;
+	background: var(--surface-raised);
+	color: var(--text-secondary);
+	font-size: 13px;
+	text-align: left;
+	cursor: pointer;
+	transition: background var(--ease), color var(--ease), border-color var(--ease);
+}
+
+.chip:hover {
+	background: var(--accent-soft);
+	color: var(--accent-text);
+	border-color: var(--accent);
+}
+
+.chip:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.chat__composer {
+	display: flex;
+	gap: 10px;
+	align-items: flex-end;
+}
+
+.chat__input {
+	flex: 1;
+	min-height: 44px;
+	max-height: 160px;
+	resize: vertical;
+}
+
+@media (max-width: 640px) {
+	.chat {
+		max-height: 50vh;
+		padding: 14px;
+	}
+
+	.chat__msg {
+		max-width: 94%;
+	}
+
+	.chat__composer {
+		flex-direction: column;
+		align-items: stretch;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.chip {
+		transition: none;
+	}
+}
