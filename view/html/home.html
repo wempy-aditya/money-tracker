@@ -63,35 +63,30 @@
             </a>
             <div class="nav__links">
                 <a class="nav__link" href="/home">Dashboard</a>
-                <a class="nav__link" href="/wallet">Dompet</a>
                 <a class="nav__link" href="/transactions">Transaksi</a>
                 <a class="nav__link" href="/budget">Anggaran</a>
-                <a class="nav__link" href="/goals">Target</a>
-                <a class="nav__link" href="/recurring">Aturan</a>
-                <a class="nav__link" href="/insights">Insights</a>
                 <a class="nav__link" href="/chat">Asisten</a>
-                <a class="nav__link" href="/profile">Profil</a>
-                <a class="nav__link" href="/settings">Pengaturan</a>
+                <div class="nav__group" data-nav-group>
+                    <button class="nav__link nav__group__button" type="button"
+                        data-nav-group-toggle aria-expanded="false" aria-haspopup="true">Lainnya
+                        <span class="nav__caret" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav__group__menu" data-nav-group-menu hidden>
+                        <a class="nav__link" href="/wallet">Dompet</a>
+                        <a class="nav__link" href="/goals">Target</a>
+                        <a class="nav__link" href="/recurring">Aturan</a>
+                        <a class="nav__link" href="/insights">Insights</a>
+                        <a class="nav__link" href="/guide">Panduan</a>
+                        <a class="nav__link" href="/profile">Profil</a>
+                        <a class="nav__link" href="/settings">Pengaturan</a>
+                    </div>
+                </div>
             </div>
             <div class="nav__actions">
                 <span class="nav__user" id="currentUser"></span>
                 <button class="icon-btn" type="button" data-theme-toggle aria-label="Ganti tema">&#9681;</button>
                 <button class="icon-btn" type="button" data-sign-out aria-label="Keluar" title="Keluar">&#9099;</button>
-                <button class="nav__toggle" type="button" data-nav-toggle aria-expanded="false"
-                    aria-label="Buka menu">&#9776;</button>
             </div>
-        </div>
-        <div class="nav__drawer" data-nav-drawer data-open="false">
-            <a class="nav__link" href="/home">Dashboard</a>
-            <a class="nav__link" href="/wallet">Dompet</a>
-            <a class="nav__link" href="/transactions">Transaksi</a>
-            <a class="nav__link" href="/budget">Anggaran</a>
-            <a class="nav__link" href="/goals">Target</a>
-            <a class="nav__link" href="/recurring">Aturan</a>
-            <a class="nav__link" href="/insights">Insights</a>
-            <a class="nav__link" href="/chat">Asisten</a>
-            <a class="nav__link" href="/profile">Profil</a>
-            <a class="nav__link" href="/settings">Pengaturan</a>
         </div>
     </nav>
 
@@ -132,6 +127,42 @@
                 <div class="stat__sub" id="avgDailyIncome">Rata-rata harian Rp0</div>
             </div>
         </div>
+
+        <!-- Pintasan: aksi yang paling sering dipakai, supaya tidak perlu
+             mencari lewat navbar dulu. -->
+        <section class="quick" aria-labelledby="quickTitle">
+            <h2 class="quick__title" id="quickTitle">Pintasan</h2>
+            <div class="quick__grid">
+                <a class="quick__item" href="/transactions">
+                    <span class="quick__icon" aria-hidden="true">&#43;</span>
+                    <span class="quick__body">
+                        <span class="quick__name">Catat transaksi</span>
+                        <span class="quick__note">Tambah pengeluaran atau pemasukan</span>
+                    </span>
+                </a>
+                <a class="quick__item" href="/chat">
+                    <span class="quick__icon" aria-hidden="true">&#9998;</span>
+                    <span class="quick__body">
+                        <span class="quick__name">Tanya asisten</span>
+                        <span class="quick__note">Analisis keuangan dengan bantuan AI</span>
+                    </span>
+                </a>
+                <a class="quick__item" href="/budget">
+                    <span class="quick__icon" aria-hidden="true">&#9635;</span>
+                    <span class="quick__body">
+                        <span class="quick__name">Atur anggaran</span>
+                        <span class="quick__note">Batas per kategori bulan ini</span>
+                    </span>
+                </a>
+                <a class="quick__item" href="/insights">
+                    <span class="quick__icon" aria-hidden="true">&#9776;</span>
+                    <span class="quick__body">
+                        <span class="quick__name">Lihat insights</span>
+                        <span class="quick__note">Pareto, Engel, Parkinson, simulasi</span>
+                    </span>
+                </a>
+            </div>
+        </section>
 
         <!-- Metrik turunan -->
         <div class="stats mb-16">

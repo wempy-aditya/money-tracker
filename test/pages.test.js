@@ -219,3 +219,155 @@ test('every served page appears in the discovered roster', () => {
 		assert.ok(PAGES.includes(page), `${page} is routed but not checked by these tests`);
 	}
 });
+
+/* -------------------------------------------------------------------- nav */
+
+/**
+ * The navigation had no coverage at all, which is how a build could drop the
+ * hamburger from every page and nothing noticed. These check the two properties
+ * that matter: the same set of destinations on every page, and every one of them
+ * actually routable.
+ */
+
+/** Every href the nav points at, across both the bar and the overflow menu. */
+function navTargets(html) {
+	const nav = html.slice(html.indexOf('<nav'), html.indexOf('</nav>'));
+	if (nav === '') return [];
+	return [...nav.matchAll(/class="nav__link"[^>]*href="\/([\w-]+)"/g)].map((m) => m[1]);
+}
+
+test('every page carries the same navigation', () => {
+	const rosters = new Map();
+
+	for (const page of PAGES) {
+		if (PUBLIC_PAGES.has(page)) continue;
+		const targets = navTargets(readPage(page));
+		assert.ok(targets.length > 0, `${page} has no nav links`);
+		rosters.set(page, targets.sort().join(','));
+	}
+
+	const distinct = new Set(rosters.values());
+	assert.equal(
+		distinct.size,
+		1,
+		`pages disagree about the navigation: ${[...rosters]
+			.filter(([, v]) => v !== [...distinct][0])
+			.map(([k, v]) => `${k}=[${v}]`)
+			.join(' vs ')}`
+	);
+});
+
+test('every nav destination is a real route', () => {
+	const routes = [...serverSource().matchAll(/'\/(\w+)':\s*'[\w.]+\.html'/g)].map((m) => m[1]);
+
+	for (const page of PAGES) {
+		if (PUBLIC_PAGES.has(page)) continue;
+		for (const target of navTargets(readPage(page))) {
+			assert.ok(
+				routes.includes(target),
+				`${page} links to /${target}, which has no route`
+			);
+		}
+	}
+});
+
+test('the overflow menu is a real button, not a hover trick', () => {
+	// Hover alone does not exist on a touch screen, so the menu needs a button
+	// that opens on click and reports its state.
+	for (const page of PAGES) {
+		if (PUBLIC_PAGES.has(page)) continue;
+		const html = readPage(page);
+		assert.match(html, /data-nav-group-toggle/);
+		assert.match(html, /aria-expanded="false"/);
+		assert.match(html, /aria-haspopup="true"/);
+		assert.match(html, /data-nav-group-menu/);
+	}
+});
+
+test('the hamburger is gone from every page', () => {
+	for (const page of PAGES) {
+		const html = readPage(page);
+		assert.equal(/data-nav-toggle/.test(html), false, `${page} still has the hamburger button`);
+		assert.equal(/nav__drawer/.test(html), false, `${page} still has the drawer`);
+	}
+});
+
+test('the hamburger markup is gone from the script and the stylesheet too', () => {
+	// A page with no toggle still loads wireNav, so leaving the old wiring in
+	// place would be dead code that reads as if it still works.
+	const js = fs.readFileSync(path.join(VIEW_DIR, 'assets', 'js', 'app.js'), 'utf8');
+	const css = fs.readFileSync(path.join(VIEW_DIR, 'assets', 'css', 'app.css'), 'utf8');
+
+	assert.equal(/nav-toggle|nav__drawer/.test(js), false);
+	assert.equal(/\.nav__drawer|\.nav__toggle/.test(css), false);
+});
+
+test('the nav closes its menu on Escape and on an outside click', () => {
+	const js = fs.readFileSync(path.join(VIEW_DIR, 'assets', 'js', 'app.js'), 'utf8');
+
+	assert.match(js, /key === 'Escape'/);
+	assert.match(js, /menu\.contains\(event\.target\)/);
+});
+
+test('a page behind the overflow menu is still marked as current', () => {
+	const js = fs.readFileSync(path.join(VIEW_DIR, 'assets', 'js', 'app.js'), 'utf8');
+
+	// Marking only the hidden link would leave the bar showing no indication at
+	// all on, say, the settings page.
+	assert.match(js, /closest\('\[data-nav-group-menu\]'\)/);
+	assert.match(js, /nav__link--contains-current/);
+});
+
+/* ------------------------------------------------------------ dead classes */
+
+/**
+ * `muted` and `mt-8` were used on four pages before either had a rule in the
+ * stylesheet, so both the spacing and the secondary text colour were being
+ * dropped, silently, on every page that used them. Nothing rendered badly enough
+ * to notice. This walks every class a page applies and reports the ones the
+ * stylesheet never defines.
+ */
+
+test('every class a page applies is defined in the stylesheet', () => {
+	const css = fs.readFileSync(path.join(VIEW_DIR, 'assets', 'css', 'app.css'), 'utf8');
+
+	// Class names that appear as a selector anywhere in the sheet.
+	const defined = new Set([...css.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
+
+	// The login page keeps its layout in an inline <style> block, so a class it
+	// defines itself must count as defined. Reading only app.css called a
+	// perfectly styled page unstyled, which is how this check would have been
+	// quietly narrowed until it proved nothing.
+	for (const page of PAGES) {
+		for (const match of readPage(page).matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) {
+			for (const sel of match[1].matchAll(/\.([a-zA-Z][\w-]*)/g)) defined.add(sel[1]);
+		}
+	}
+
+	// Names that are not styling decisions: hooks for behaviour and testing.
+	const IGNORED = new Set([
+		// Anything the script keys off, and anything a browser or vendor adds.
+		'hide', 'show', 'active', 'open', 'loading', 'error', 'success',
+		'is-active', 'is-open', 'is-loading', 'sr-only', 'visually-hidden'
+	]);
+
+	const missing = new Map();
+
+	for (const page of PAGES) {
+		const html = readPage(page);
+
+		for (const match of html.matchAll(/class="([^"]+)"/g)) {
+			for (const name of match[1].split(/\s+/)) {
+				if (!name || defined.has(name) || IGNORED.has(name)) continue;
+				if (!missing.has(name)) missing.set(name, []);
+				missing.get(name).push(page);
+			}
+		}
+	}
+
+	assert.deepEqual(
+		[...missing.entries()].map(([name, pages]) => `${name} (${pages.length} pages)`),
+		[],
+		'classes used in markup but never styled'
+	);
+});

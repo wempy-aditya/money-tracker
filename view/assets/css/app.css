@@ -263,17 +263,16 @@ a:hover {
 	flex: none;
 }
 
+/* The hamburger is gone: four links plus one menu fit on a phone, so the bar is
+   the navigation at every width. It used to hide entirely below 900px and hand
+   over to a drawer, which meant the desktop and phone apps had different
+   shapes for no reason. */
 .nav__links {
-	display: none;
+	display: flex;
 	margin-left: auto;
 	align-items: center;
 	gap: 2px;
-}
-
-@media (min-width: 900px) {
-	.nav__links {
-		display: flex;
-	}
+	min-width: 0;
 }
 
 .nav__link {
@@ -308,44 +307,6 @@ a:hover {
 	.nav__actions {
 		margin-left: 10px;
 	}
-}
-
-.nav__toggle {
-	display: grid;
-	place-items: center;
-	width: 38px;
-	height: 38px;
-	border: 1px solid var(--border);
-	border-radius: var(--radius-control);
-	background: var(--surface-raised);
-	color: var(--text-primary);
-	cursor: pointer;
-	font-size: 16px;
-}
-
-@media (min-width: 900px) {
-	.nav__toggle {
-		display: none;
-	}
-}
-
-/* Mobile drawer. Slides below the bar rather than covering the page, so the
-   brand and theme toggle stay reachable. */
-.nav__drawer {
-	display: none;
-	border-top: 1px solid var(--border);
-	background: var(--surface-raised);
-	padding: 8px 12px 12px;
-}
-
-.nav__drawer[data-open='true'] {
-	display: block;
-}
-
-.nav__drawer .nav__link {
-	display: block;
-	padding: 11px 12px;
-	font-size: 15px;
 }
 
 .nav__user {
@@ -1102,6 +1063,12 @@ a:hover {
 .mt-0 { margin-top: 0; }
 .mb-16 { margin-bottom: 16px; }
 
+/* mt-8 and muted were used on several pages before either had a rule, so the
+   spacing and the secondary colour were both being silently dropped. */
+.mt-8 { margin-top: 8px; }
+
+.muted { color: var(--text-secondary); }
+
 .chart {
 	width: 100%;
 	height: 210px;
@@ -1331,6 +1298,371 @@ a:hover {
 
 .card--setup {
 	border-left: 3px solid var(--warning);
+}
+
+
+/* ------------------------------------------------------ rendered markdown */
+
+/* Styled here rather than pulled from a library, so a reply keeps the app's own
+   typography and every colour comes from the same tokens the rest of the app
+   uses. One accent, one radius, nothing that shifts with the theme except the
+   tokens themselves. */
+
+.chat__bubble--md > :first-child { margin-top: 0; }
+.chat__bubble--md > :last-child { margin-bottom: 0; }
+
+.md-p {
+	margin: 0 0 10px;
+	line-height: 1.6;
+}
+
+/* Headings are divs rather than h1 to h4: a reply inside a page should not enter
+   the document outline. Sized to read as structure, not as a page title. */
+.md-h {
+	font-weight: 650;
+	line-height: 1.35;
+	margin: 16px 0 8px;
+	color: var(--text-primary);
+}
+
+.md-h1 { font-size: 17px; }
+.md-h2 { font-size: 16px; }
+.md-h3 { font-size: 15px; }
+.md-h4 { font-size: 14px; color: var(--text-secondary); }
+
+.chat__bubble--md > .md-h:first-child { margin-top: 0; }
+
+.md-list {
+	margin: 0 0 10px;
+	padding-left: 20px;
+	line-height: 1.6;
+}
+
+.md-list li { margin-bottom: 4px; }
+.md-rule {
+	border: none;
+	border-top: 1px solid var(--border);
+	margin: 14px 0;
+}
+
+blockquote {
+	margin: 0 0 10px;
+	padding: 8px 12px;
+	border-left: 3px solid var(--accent);
+	background: var(--accent-soft);
+	border-radius: 0 var(--radius-control) var(--radius-control) 0;
+	color: var(--text-secondary);
+	line-height: 1.6;
+}
+
+blockquote > :last-child { margin-bottom: 0; }
+
+.md-code,
+.chat__bubble--md code {
+	/* The stack is spelled out rather than taken from a token, because the app
+	   keeps its own font on body instead of in a custom property. */
+	font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+		'Liberation Mono', 'Courier New', monospace;
+	font-size: 13px;
+}
+
+.chat__bubble--md code {
+	background: var(--surface-sunken);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 1px 5px;
+}
+
+.md-code {
+	margin: 0 0 10px;
+	padding: 10px 12px;
+	background: var(--surface-sunken);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-control);
+	overflow-x: auto;
+	line-height: 1.5;
+}
+
+.md-code code {
+	background: none;
+	border: none;
+	padding: 0;
+}
+
+/* A reply is Markdown but a user's own message is not, so the code styling has
+   to stay off the user bubble. */
+.chat__bubble--user code { font-family: inherit; }
+
+/* Tables scroll rather than widen the bubble past the screen. The advisor
+   compares numbers, so a table is a real shape here, not decoration. */
+.table-wrap {
+	margin: 0 0 10px;
+	overflow-x: auto;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-control);
+	-webkit-overflow-scrolling: touch;
+}
+
+.table-wrap table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+}
+
+.table-wrap th,
+.table-wrap td {
+	padding: 7px 10px;
+	text-align: left;
+	border-bottom: 1px solid var(--border);
+	white-space: nowrap;
+}
+
+.table-wrap th {
+	background: var(--surface-sunken);
+	font-weight: 600;
+	color: var(--text-secondary);
+}
+
+.table-wrap tbody tr:last-child td { border-bottom: none; }
+
+.chat__bubble--md a {
+	/* The accent itself measures just under AA on this surface, so the link
+	   text takes the secondary colour and the accent stays as the underline.
+	   Hover and focus return the accent, which by then is a deliberate accent
+	   rather than the only thing carrying the meaning. */
+	color: var(--text-secondary);
+	text-decoration: underline;
+	text-decoration-color: var(--accent);
+	text-decoration-thickness: 2px;
+	text-underline-offset: 2px;
+	word-break: break-word;
+}
+
+.chat__bubble--md a:hover,
+.chat__bubble--md a:focus-visible { color: var(--text-primary); }
+
+/* Decorative text inside a reply, rather than the reply itself: the empty
+   placeholder and the list markers. Secondary keeps them above AA where muted
+   is not, without competing with the answer. */
+.md-p--empty {
+	color: var(--text-secondary);
+	font-style: italic;
+}
+.md-list li::marker { color: var(--text-secondary); }
+
+.chat__bubble--md strong { font-weight: 650; color: var(--text-primary); }
+
+/* ------------------------------------------------------------------ guide */
+
+/* Reference material rather than an interface: wide measure, quiet headings,
+   and nothing that competes with the page titles. Readable first, scannable
+   second, so the section order does the explaining. */
+
+.guide-steps {
+	margin: 8px 0 0;
+	padding-left: 22px;
+	line-height: 1.65;
+}
+
+.guide-steps li {
+	margin-bottom: 7px;
+}
+
+.guide-steps strong {
+	color: var(--text-primary);
+}
+
+/* The notes are a definition list in everything but name: a term and what it
+   means. Two columns on a wide screen, one when there is not the room, because
+   a wall of prose is the thing people stop reading. */
+.guide-notes {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 12px;
+}
+
+.guide-note {
+	padding: 13px 15px;
+	background: var(--surface-sunken);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-surface);
+}
+
+.guide-note h3 {
+	margin: 0 0 5px;
+	font-size: 14px;
+	font-weight: 650;
+	color: var(--text-primary);
+}
+
+.guide-note p {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--text-secondary);
+}
+
+/* ------------------------------------------------------------------ pintasan */
+
+/* Four actions that would otherwise need a trip through the nav. Built as
+   links rather than buttons: each one goes somewhere, and a link is what the
+   browser already handles (middle-click, copy address, keyboard). */
+
+.quick {
+	margin-bottom: 16px;
+}
+
+.quick__title {
+	margin: 0 0 10px;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	/* Secondary rather than muted: a 13px uppercase label in muted measured
+	   4.43:1 on the page surface, under AA, and it is the one line that names
+	   the section a shortcut belongs to. */
+	color: var(--text-secondary);
+}
+
+.quick__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 10px;
+}
+
+.quick__item {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	padding: 12px 14px;
+	background: var(--surface-raised);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-surface);
+	color: inherit;
+	transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.quick__item:hover {
+	text-decoration: none;
+	border-color: var(--accent);
+	background: var(--surface-hover);
+}
+
+.quick__icon {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	flex: none;
+	border-radius: var(--radius-control);
+	background: var(--accent-soft);
+	color: var(--accent-text);
+	font-size: 17px;
+	line-height: 1;
+}
+
+.quick__body {
+	min-width: 0;
+}
+
+.quick__name {
+	display: block;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.quick__note {
+	display: block;
+	font-size: 13px;
+	color: var(--text-secondary);
+	/* One line: a shortcut that wraps to three makes the grid uneven. */
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------- nav overflow menu */
+
+/* Six destinations behind one button instead of ten across the bar. The button
+   is a real button with aria-expanded rather than a hover-only menu, so it works
+   on touch and with a keyboard, and the menu closes on Escape or an outside
+   click the way a menu is expected to. */
+
+.nav__group {
+	position: relative;
+	flex: none;
+}
+
+.nav__group__button {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	border: none;
+	background: none;
+	cursor: pointer;
+	font-family: inherit;
+}
+
+.nav__caret {
+	font-size: 10px;
+	color: var(--text-muted);
+	transition: transform 0.15s var(--ease);
+}
+
+/* The caret turning over is the only cue that the menu is open, so it follows
+   aria-expanded rather than tracking hover. */
+.nav__group__button[aria-expanded='true'] .nav__caret {
+	transform: rotate(180deg);
+}
+
+.nav__group__button[aria-expanded='true'],
+.nav__link--contains-current {
+	background: var(--accent-soft);
+	color: var(--accent-text);
+	font-weight: 600;
+}
+
+/* Opened is hover-like, current is a page marker. Both at once keeps the open
+   colour so opening the menu does not look like the section changed. */
+.nav__group__button[aria-expanded='true'] {
+	background: var(--surface-hover);
+	color: var(--text-primary);
+	font-weight: 500;
+}
+
+.nav__group__menu {
+	position: absolute;
+	top: calc(100% + 6px);
+	right: 0;
+	min-width: 190px;
+	padding: 6px;
+	background: var(--surface-raised);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-control);
+	box-shadow: var(--shadow-md);
+	z-index: 50;
+}
+
+.nav__group__menu[hidden] {
+	display: none;
+}
+
+.nav__group__menu .nav__link {
+	display: block;
+	width: 100%;
+	text-align: left;
+	padding: 9px 11px;
+	font-size: 14px;
+}
+
+/* A destination that is the current page still has to be marked while it sits
+   inside a closed menu, otherwise the bar shows no indication at all. */
+.nav__group__menu .nav__link[aria-current='page'] {
+	background: var(--accent-soft);
+	color: var(--accent-text);
+	font-weight: 600;
 }
 
 /* ------------------------------------------------------------------- chat */

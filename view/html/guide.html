@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Panduan - Daily Money Tracker</title>
+    <link rel="stylesheet" href="/assets/css/app.css" />
+</head>
+
+<body>
+    <nav class="nav">
+        <div class="nav__inner">
+            <a class="nav__brand" href="/home">
+                <span class="nav__mark" aria-hidden="true">Rp</span>
+                <span>Money Tracker</span>
+            </a>
+            <div class="nav__links">
+                <a class="nav__link" href="/home">Dashboard</a>
+                <a class="nav__link" href="/transactions">Transaksi</a>
+                <a class="nav__link" href="/budget">Anggaran</a>
+                <a class="nav__link" href="/chat">Asisten</a>
+                <div class="nav__group" data-nav-group>
+                    <button class="nav__link nav__group__button" type="button"
+                        data-nav-group-toggle aria-expanded="false" aria-haspopup="true">Lainnya
+                        <span class="nav__caret" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav__group__menu" data-nav-group-menu hidden>
+                        <a class="nav__link" href="/wallet">Dompet</a>
+                        <a class="nav__link" href="/goals">Target</a>
+                        <a class="nav__link" href="/recurring">Aturan</a>
+                        <a class="nav__link" href="/insights">Insights</a>
+                        <a class="nav__link" href="/guide">Panduan</a>
+                        <a class="nav__link" href="/profile">Profil</a>
+                        <a class="nav__link" href="/settings">Pengaturan</a>
+                    </div>
+                </div>
+            </div>
+            <div class="nav__actions">
+                <span class="nav__user" id="currentUser"></span>
+                <button class="icon-btn" type="button" data-theme-toggle aria-label="Ganti tema">&#9681;</button>
+                <button class="icon-btn" type="button" data-sign-out aria-label="Keluar" title="Keluar">&#9099;</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="page">
+        <div class="page-head">
+            <div class="page-head__text">
+                <h1>Panduan</h1>
+                <p>Apa setiap bagian aplikasi ini lakukan, dan urutan yang paling enak untuk mulai.</p>
+            </div>
+        </div>
+
+        <!-- Urutan pemakaian -->
+        <div class="card mb-16">
+            <div class="card__body">
+                <h2 class="panel__title">Urutan pemakaian</h2>
+                <p class="muted mt-8">Aplikasi ini jadi berguna kalau datanya lengkap dulu, baru ditanya. Urutan yang enak:</p>
+                <ol class="guide-steps">
+                    <li><strong>Isi profil</strong> di <a href="/profile">Profil</a>. Ini yang bikin asisten tahu
+                        situasinya, jadi lakukan sebelum pakai AI.</li>
+                    <li><strong>Buat dompet</strong> di <a href="/wallet">Dompet</a> kalau punya lebih dari satu
+                        rekening atau uang tunai. Semua transaksi menempel ke sebuah dompet.</li>
+                    <li><strong>Catat transaksi</strong> di <a href="/transactions">Transaksi</a>. Ini sumber semua
+                        angka lain.</li>
+                    <li><strong>Tetapkan anggaran</strong> di <a href="/budget">Anggaran</a>. Setiap kategori diberi
+                        jenis <em>needs</em> atau <em>wants</em> supaya analisis bisa membedakan.</li>
+                    <li><strong>Tanya asisten</strong> di <a href="/chat">Asisten</a>. Hasilnya keluar dari semua langkah di atas.</li>
+                    <li><strong>Lihat pola jangka panjang</strong> di <a href="/insights">Insights</a>. Butuh
+                        beberapa bulan data, jadi ini yang terakhir.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Halaman -->
+        <div class="card mb-16">
+            <div class="card__body">
+                <h2 class="panel__title">Halaman</h2>
+                <div class="table-wrap mt-8">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Halaman</th>
+                                <th>Untuk apa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><a href="/home">Dashboard</a></td>
+                                <td>Ringkasan bulan berjalan: saldo, pemasukan, pengeluaran, rasio, dan empat pintasan
+                                    untuk aksi yang sering dipakai.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="/transactions">Transaksi</a></td>
+                                <td>Tambah, ubah, hapus transaksi. Setiap transaksi punya tanggal, jumlah, kategori,
+                                    dan dompet tujuan.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="/wallet">Dompet</a></td>
+                                <td>Rekening, kas, atau uang tunai. Punya riwayat transfer antar dompet supaya saldo
+                                    tidak terlihat melompat tanpa penjelasan.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="/budget">Anggaran</a></td>
+                                <td>Batas belanja per kategori untuk satu bulan. Setiap kategori bisa diberi jenis
+                                    needs atau wants.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="/goals">Target</a></td>
+                                <td>Tabungan atau target dengan nominal dan tenggat. Dipakai untuk melihat progres di dashboard.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="/recurring">Aturan</a></td>
+                                <td>Transaksi yang berulang: sewa, langganan, gaji. Template, bukan pencatatan
+                                    otomatis.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="/insights">Insights</a></td>
+                                <td>Empat analisis: Engel, Parkinson, Pareto, dan simulasi kekayaan.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="/chat">Asisten</a></td>
+                                <td>Tanya apa saja tentang keuangan Anda. Dijawab dengan data dan profil Anda.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="/profile">Profil</a></td>
+                                <td>Data diri yang dibaca asisten: pekerjaan, usia, posisi, pendidikan, latar belakang,
+                                    hobi, tanggungan, komitmen, tujuan, profil risiko.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="/settings">Pengaturan</a></td>
+                                <td>Hubungkan penyedia AI, atur gaya bicara, uji koneksi.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yang perlu diketahui -->
+        <div class="card mb-16">
+            <div class="card__body">
+                <h2 class="panel__title">Yang perlu diketahui sebelum pakai</h2>
+                <div class="guide-notes mt-8">
+                    <div class="guide-note">
+                        <h3>Aturan tidak jalan sendiri</h3>
+                        <p>Transaksi berulang di <a href="/recurring">Aturan</a> adalah template. Tidak ada scheduler,
+                            jadi setiap bulan Anda perlu menekan <strong>Jalankan yang jatuh tempo</strong> sekali
+                            sendiri.</p>
+                    </div>
+                    <div class="guide-note">
+                        <h3>Insights butuh waktu</h3>
+                        <p>Parkinson memakai rata-rata tiga bulan sebelumnya sebagai batas wajar. Dengan data satu bulan
+                            saja, panel itu akan bilang butuh data lebih banyak, bukan menebak.</p>
+                    </div>
+                    <div class="guide-note">
+                        <h3>Bulan kosong bukan berarti nol</h3>
+                        <p>Tidak ada transaksi di sebuah bulan berarti tidak ada yang tercatat. Aplikasi tidak
+                            menganggapnya pengeluaran nol, dan asisten juga mengatakannya.</p>
+                    </div>
+                    <div class="guide-note">
+                        <h3>Asisten tidak bisa mengubah apa pun</h3>
+                        <p>Dia hanya memberi saran. Tidak bisa menambah transaksi, memindahkan uang, atau mengubah
+                            anggaran. Semua angka di jawabannya diambil dari data Anda, dan angka yang tidak ada
+                            akan tetap bilang tidak ada.</p>
+                    </div>
+                    <div class="guide-note">
+                        <h3>API key tidak pernah dikirim balik</h3>
+                        <p>Setelah disimpan di <a href="/settings">Pengaturan</a>, key tidak lagi dibaca dari server ke
+                            browser. Field-nya akan kosong, dan aplikasi hanya menunjukkan apakah key ada.</p>
+                    </div>
+                    <div class="guide-note">
+                        <h3>Data di perangkat ini</h3>
+                        <p>Semua tersimpan di satu berkas SQLite di folder <code>data</code>. Tidak ada sinkronisasi antar
+                            perangkat: dua perangkat berarti dua data terpisah.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tanya asisten -->
+        <div class="card mb-16">
+            <div class="card__body">
+                <h2 class="panel__title">Cara bertanya ke asisten</h2>
+                <p class="muted mt-8">Asisten membaca profil, saldo, anggaran, dan riwayat transaksi Anda. Pertanyaan
+                    yang menyebut nominal dan jangka waktu menghasilkan jawaban yang jauh lebih pakai daripada yang
+                    umum.</p>
+                <div class="table-wrap mt-8">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Bentuk pertanyaan</th>
+                                <th>Contoh</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Meminta keputusan</td>
+                                <td>Apakah saya bisa beli barang seharga Rp2.000.000 bulan ini?</td>
+                            </tr>
+                            <tr>
+                                <td>Meminta lokasi masalah</td>
+                                <td>Ke mana pengeluaran saya paling banyak bulan ini?</td>
+                            </tr>
+                            <tr>
+                                <td>Meminta alasan</td>
+                                <td>Kenapa pengeluaran saya naik dari bulan lalu?</td>
+                            </tr>
+                            <tr>
+                                <td>Meminta simulasi</td>
+                                <td>Kalau saya tambah tabungan Rp500.000 per bulan, dampaknya apa?</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="muted mt-8">Bahasa jawaban mengikuti bahasa pertanyaan Anda. Gaya bicara diatur di
+                    <a href="/settings">Pengaturan</a>, dan pilihan itu hanya mengubah cara bicara, bukan aturan
+                    asisten.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card__body">
+                <h2 class="panel__title">Yang belum ada</h2>
+                <p class="muted mt-8">Supaya tidak mencari fitur yang memang belum dibuat:</p>
+                <ul class="md-list mt-8">
+                    <li>Tidak ada sinkronisasi cloud, jadi aplikasi ini dipakai di satu perangkat.</li>
+                    <li>Tidak ada reset password, jadi username dan password adalah satu-satunya jalan
+                        masuk.</li>
+                    <li>Tidak ada pencatatan transaksi berulang otomatis, seperti pada aplikasi yang umum.</li>
+                    <li>Tidak ada notifikasi; aplikasi harus dibuka supaya ada yang perlu diketahui.</li>
+                    <li>Tidak ada ekspor PDF, hanya CSV dan JSON.</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-host" id="toastHost" aria-live="polite"></div>
+
+    <script src="/assets/js/app.js"></script>
+</body>
+
+</html>

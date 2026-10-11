@@ -25,8 +25,19 @@
 		who.textContent = role === 'user' ? 'Anda' : 'Asisten';
 
 		var body = document.createElement('div');
-		body.className = 'chat__bubble';
-		body.textContent = content;
+
+		if (role === 'user') {
+			// What the user typed is shown verbatim. A message is not a document,
+			// and rendering someone's own words back as markup is a surprise.
+			body.className = 'chat__bubble';
+			body.textContent = content;
+		} else {
+			// The advisor writes Markdown, so it is rendered. innerHTML is safe
+			// here because renderMarkdown escapes the text before building any tag
+			// and the only markup in the output is what that function emits.
+			body.className = 'chat__bubble chat__bubble--md';
+			body.innerHTML = App.renderMarkdown(content) || '<p class="md-p md-p--empty">(balasan kosong)</p>';
+		}
 
 		el.appendChild(who);
 		el.appendChild(body);

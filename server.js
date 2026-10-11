@@ -61,6 +61,7 @@ const PAGES = {
 	'/goals': 'goals.html',
 	'/recurring': 'recurring.html',
 	'/insights': 'insights.html',
+	'/guide': 'guide.html',
 	'/chat': 'chat.html',
 	'/profile': 'profile.html',
 	'/settings': 'settings.html'
