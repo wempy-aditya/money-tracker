@@ -108,7 +108,8 @@ router.post('/', async (req, res) => {
 			settings: { ...settings, profileIncomplete: !hasUsefulProfile(profile) },
 			profile,
 			snapshot,
-			history
+			history,
+			question
 		});
 		messages.push({ role: 'user', content: question });
 

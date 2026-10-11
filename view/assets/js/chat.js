@@ -172,6 +172,15 @@
 		waiting.appendChild(waitingWho);
 		waiting.appendChild(waitingBody);
 
+		// It has to be in the DOM before replaceChild can find it. Without this
+		// the replace throws NotFoundError, the catch below swallows it, and the
+		// answer only appears after a manual refresh because the history reload
+		// is the only thing that redraws the log.
+		if (box) {
+			box.appendChild(waiting);
+			box.scrollTop = box.scrollHeight;
+		}
+
 		App.api('/api/chat', { method: 'POST', body: { message: question } })
 			.then(function (result) {
 				if (box) box.replaceChild(bubble('assistant', result.answer.content, result.answer.created_at), waiting);

@@ -25,6 +25,37 @@
 		box.hidden = !message;
 	}
 
+	/** Human labels for the persona names the API returns. */
+	var PERSONA_LABELS = {
+		profesional: 'Profesional — lugas, netral',
+		santai: 'Santai — hangat, santai',
+		formal: 'Formal — baku, resmi',
+		teknis: 'Teknis — istilah keuangan, dijelaskan',
+		ringkas: 'Ringkas — beberapa kalimat saja',
+		penjelas: 'Penjelas — menguraikan alasannya'
+	};
+
+	/**
+	 * Built from the list the server sends rather than a hardcoded one, so a
+	 * persona added on the backend shows up here without a second edit.
+	 */
+	function renderPersonas(available, selected) {
+		var select = document.getElementById('persona');
+		if (!select) return;
+
+		select.innerHTML = '';
+		var names = (available && available.length) ? available : Object.keys(PERSONA_LABELS);
+
+		names.forEach(function (name) {
+			var option = document.createElement('option');
+			option.value = name;
+			option.textContent = PERSONA_LABELS[name] || name;
+			select.appendChild(option);
+		});
+
+		select.value = selected || names[0];
+	}
+
 	function setBadge(text, tone) {
 		var badge = document.getElementById('connectionBadge');
 		if (!badge) return;
@@ -33,6 +64,7 @@
 	}
 
 	function applySettings(settings) {
+		renderPersonas(settings.personas, settings.persona);
 		document.getElementById('api_url').value = settings.api_url || '';
 		document.getElementById('model').value = settings.model || '';
 		document.getElementById('temperature').value =
@@ -77,7 +109,8 @@
 			api_url: document.getElementById('api_url').value,
 			model: document.getElementById('model').value,
 			temperature: document.getElementById('temperature').value,
-			max_tokens: document.getElementById('max_tokens').value
+			max_tokens: document.getElementById('max_tokens').value,
+			persona: document.getElementById('persona').value
 		};
 
 		// Only sent when the user actually typed one. An empty field must not

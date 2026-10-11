@@ -226,7 +226,7 @@ npm test
 ```
 
 ```text
-181 tests
+191 tests
 ```
 
 | File | Covers |
@@ -258,6 +258,25 @@ The assistant is **read-only by design**. It receives no tool definitions and no
 write endpoint is reachable from it, so it cannot create a transaction, move money,
 or change a budget no matter what the conversation says. "Buy this laptop for me"
 gets advice, and the purchase happens because you recorded it yourself.
+
+### Language and tone
+
+The advisor answers in the language the question was asked in. The question is
+inspected first: a script range decides Chinese, Japanese, Korean, Arabic, Hindi or
+Thai outright, and Indonesian versus English is decided by word frequency, where
+words that are equally at home in both languages are ignored so they cannot break a
+tie. When the result is genuinely ambiguous it returns nothing, and the standing
+instruction in the prompt takes over.
+
+Nothing forces Indonesian any more. The original prompt said "berbahasa Indonesia"
+unconditionally, which is what let a Chinese-hosted model answer in Indonesian and
+slip Mandarin into the same reply.
+
+The tone is chosen on `/settings`: `profesional`, `santai`, `formal`, `teknis`,
+`ringkas` or `penjelas`. The list comes from the API rather than being hardcoded in
+the form. A tone only ever appends style rules; the hard rules (read-only, no
+invented numbers) are never derived from user input, so no choice of tone can
+weaken them.
 
 ### What it can actually see
 
@@ -304,9 +323,13 @@ key from the environment, or stop storing it.
 
 ```text
 The AI advisor has never been run against a real provider. Every test stubs the
-  HTTP call, so the request shape, the context block and the response parsing are
-  verified, but no real model has answered yet. Expect to adjust something on
-  first real use, most likely the model name or the URL shape.
+  HTTP call, so the request shape, the context block, the response parsing and the
+  language detection are verified, but no real model has answered yet. Expect to
+  adjust something on first real use, most likely the model name or the URL shape.
+
+Language detection is a word list, not a model. It handles the clear cases; a
+  short code-mixed question returns nothing and falls back to the instruction in
+  the prompt. Tuning it means adding words, not retraining anything.
 
 Layout on phones is not visually verified. The CSS collapses to one column and
   the inputs are 16px, but no automated check can resize a viewport. Worth one

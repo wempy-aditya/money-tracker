@@ -15,6 +15,7 @@ const express = require('express');
 const router = express.Router();
 const { firestore } = require('../db/firestore');
 const { ProfileStore } = require('../db/profile');
+const { STYLE_RULES, DEFAULT_PERSONA } = require('../services/llm');
 
 const db = firestore();
 const store = new ProfileStore(db.raw());
@@ -60,7 +61,12 @@ router.get('/', (req, res) => {
 	const settings = store.readSettings(userId);
 	const status = store.connectionStatus(userId);
 
-	res.status(200).json({ ...settings, configured: status.configured, missing: status.missing });
+	res.status(200).json({
+		...settings,
+		configured: status.configured,
+		missing: status.missing,
+		personas: Object.keys(STYLE_RULES)
+	});
 });
 
 // 🔹 Simpan pengaturan LLM
@@ -69,14 +75,38 @@ router.put('/', (req, res) => {
 		const userId = ownerOf(req);
 		const body = req.body || {};
 
-		const urlError = validateUrl(cleanText(body.api_url));
-		if (urlError) return res.status(400).json({ error: urlError });
+		// Only validate a URL that is actually being set. Clearing it to empty is
+		// allowed and means "no endpoint configured", not "invalid URL".
+		if (body.api_url !== undefined && cleanText(body.api_url)) {
+			const urlError = validateUrl(cleanText(body.api_url));
+			if (urlError) return res.status(400).json({ error: urlError });
+		}
+
+		// Only an accepted persona name is stored. Anything else falls back rather
+		// than reaching the prompt, so the style block is always a known string.
+		const persona = String(body.persona || '').trim().toLowerCase();
+		if (persona && !Object.prototype.hasOwnProperty.call(STYLE_RULES, persona)) {
+			return res.status(400).json({ error: 'Gaya bicara tidak dikenal' });
+		}
+
+		// Merge onto what is already stored, so a partial update cannot blank a
+		// field the user did not send. Sending only `persona` once wiped the URL
+		// and the model, which then made every chat fail with "not configured".
+		const current = store.readSettingsWithKey(userId);
 
 		const values = {
-			api_url: cleanText(body.api_url),
-			model: cleanText(body.model),
-			temperature: cleanNumber(body.temperature, { min: 0, max: 2, fallback: 0.7 }),
-			max_tokens: cleanNumber(body.max_tokens, { min: 64, max: 32000, fallback: 1024 })
+			api_url: body.api_url === undefined ? current.api_url : cleanText(body.api_url),
+			model: body.model === undefined ? current.model : cleanText(body.model),
+			temperature: body.temperature === undefined
+				? current.temperature
+				: cleanNumber(body.temperature, { min: 0, max: 2, fallback: 0.7 }),
+			max_tokens: body.max_tokens === undefined
+				? current.max_tokens
+				: cleanNumber(body.max_tokens, { min: 64, max: 32000, fallback: 1024 }),
+			// Absent means keep. Only an explicit empty string resets to default.
+			persona: body.persona === undefined
+				? current.persona
+				: persona || DEFAULT_PERSONA
 		};
 
 		// An absent api_key keeps the stored one, so the form never has to

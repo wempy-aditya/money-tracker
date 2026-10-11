@@ -331,13 +331,140 @@ function summariseOlderMessages(messages) {
  * to respect, names the honesty requirement, and asks for advice that ends in
  * something the user can actually do.
  */
-function systemPrompt(profileIncomplete) {
+/**
+ * Per-persona style rules.
+ *
+ * The tone is separated from the hard rules on purpose: a user changing the tone
+ * must never be able to change the read-only constraint or the no-invented-numbers
+ * rule by picking a different option, so `STYLE_RULES` is only ever appended and
+ * `CORE_RULES` is never derived from user input.
+ */
+const STYLE_RULES = {
+	profesional: [
+		'Gunakan bahasa yang profesional dan lugas. Hindari slang dan tanda seru berlebihan.'
+	],
+	santai: [
+		'Bicara santai dan hangat, seperti konsultan yang sudah akrab. Boleh singkat.'
+	],
+	formal: [
+		'Gunakan bahasa formal dan baku. Hindari kontraksi dan sebutan santai.'
+	],
+	teknis: [
+		'Boleh memakai istilah keuangan teknis, tapi jelaskan singkat setiap istilah yang belum umum.'
+		],
+	ringkas: [
+		'Jawab sependek mungkin. Biasanya beberapa kalimat. Jangan mengulang konteks.'
+	],
+	penjelas: [
+		'Jelaskan alasan di balik setiap saran, bukan hanya kesimpulan.'
+	]
+};
+
+const DEFAULT_PERSONA = 'profesional';
+
+/** Named in the prompt in the language itself, so a model follows it literally. */
+const LANGUAGE_NAMES = {
+	id: 'Bahasa Indonesia',
+	en: 'English',
+	zh: '简体中文',
+	ja: '日本語',
+	ko: '한국어',
+	ar: 'العربية',
+	hi: 'हिन्दी',
+	th: 'ภาษาไทย'
+};
+
+/** Reads a persona name from settings, falling back rather than trusting the value. */
+function personaFor(persona) {
+	const name = String(persona || '').trim().toLowerCase();
+	return Object.prototype.hasOwnProperty.call(STYLE_RULES, name) ? name : DEFAULT_PERSONA;
+}
+
+/**
+ * Detects the language of the question so the answer can follow it.
+ *
+ * A local model answers in Indonesian here regardless, and forcing one language
+ * back is what produced stray Mandarin from Chinese-hosted models. Matching the
+ * user is the behaviour people expect from a chat.
+ */
+function detectLanguage(text) {
+	const sample = String(text || '').slice(0, 600);
+	if (!sample.trim()) return null;
+
+	// Script ranges are the strongest signal and need no word lists. Kana is
+	// checked before Han: Japanese text contains Han characters too, and without
+	// this order every Japanese question is classified as Chinese.
+	if (/[\u3040-\u30ff]/.test(sample)) return 'ja';
+	if (/[\uac00-\ud7af]/.test(sample)) return 'ko';
+	if (/[\u4e00-\u9fff]/.test(sample)) return 'zh';
+	if (/[\u0600-\u06ff]/.test(sample)) return 'ar';
+	if (/[\u0900-\u097f]/.test(sample)) return 'hi';
+	if (/[\u0e00-\u0e7f]/.test(sample)) return 'th';
+
+	const words = sample.toLowerCase().match(/[a-z']+/g) || [];
+
+	const INDONESIAN = new Set([
+		'apa', 'apakah', 'saya', 'aku', 'bisa', 'boleh', 'sudah', 'belum', 'tidak', 'yang',
+		'dengan', 'untuk', 'kapan', 'berapa', 'kenapa', 'mengapa', 'bagaimana', 'dong',
+		'aja', 'sih', 'nih', 'kok', 'gimana', 'kira', 'sekarang', 'bulan', 'tahun',
+		'uang', 'bisa', 'mau', 'pengen', 'harus', 'perlu', 'ada', 'kalau', 'atau',
+		'terima', 'kasih', 'makasih', 'tolong', 'boleh', 'yuk', 'pagi', 'sore', 'malam'
+	]);
+
+	const ENGLISH = new Set([
+		'the', 'is', 'are', 'was', 'were', 'be', 'been', 'am', 'do', 'does', 'did',
+		'can', 'could', 'would', 'will', 'shall', 'should', 'may', 'might', 'must',
+		'i', 'my', 'me', 'mine', 'we', 'our', 'you', 'your', 'yours', 'he', 'she',
+		'they', 'it', 'its', 'this', 'that', 'these', 'those', 'there', 'here',
+		'what', 'how', 'much', 'many', 'why', 'when', 'where', 'which', 'who',
+		'if', 'and', 'or', 'not', 'no', 'yes', 'to', 'of', 'in', 'for', 'on', 'at',
+		'by', 'from', 'with', 'about', 'have', 'has', 'had', 'get', 'got', 'need',
+		'want', 'know', 'think', 'tell', 'help', 'please', 'thanks', 'afford',
+		'enough', 'last', 'this', 'next', 'past', 'before', 'after', 'still'
+	]);
+
+	// Words that are equally at home in both languages. Counting them toward
+	// either side decides the tie rather than the actual wording.
+	const SHARED = new Set([
+		'budget', 'money', 'month', 'year', 'finance', 'financial', 'target',
+		'plan', 'data', 'account', 'cash', 'debt', 'loan', 'interest'
+	]);
+
+	let id = 0;
+	let en = 0;
+	for (const word of words) {
+		if (SHARED.has(word)) continue;
+		if (INDONESIAN.has(word)) id++;
+		else if (ENGLISH.has(word)) en++;
+	}
+
+	// A short question can be genuinely ambiguous ("Budget?"). Rather than
+	// guessing wrong, return null and let the standing rule handle it.
+	if (id === 0 && en === 0) return null;
+
+	// Function words are a stronger signal than topic words: "budget" and "money"
+	// are English words that also show up untranslated in Indonesian writing, but
+	// "can", "the" and "i" only appear when the sentence is actually English. So
+	// a tie or a narrow margin between the two is treated as unknown.
+	const total = id + en;
+	const margin = Math.abs(id - en);
+
+	if (total < 2) return null;
+	if (id === en) return null;
+	if (margin / total < 0.5) return null;
+
+	return id > en ? 'id' : 'en';
+}
+
+function systemPrompt(profileIncomplete, persona) {
 	const honesty = profileIncomplete
 		? 'Profil pengguna belum lengkap. Sebutkan fakta yang belum ada secara terbuka dan jangan mengarang.'
 		: 'Profil pengguna sudah terisi.';
 
+	const style = STYLE_RULES[personaFor(persona)];
+
 	return [
-		'Kamu adalah penasihat keuangan pribadi untuk satu pengguna, berbahasa Indonesia.',
+		'Kamu adalah penasihat keuangan pribadi untuk satu pengguna.',
 		'',
 		'Aturan yang wajib dijaga:',
 		'1. Kamu HANYA memberi saran. Kamu tidak dapat membuat transaksi, memindahkan uang,',
@@ -348,7 +475,7 @@ function systemPrompt(profileIncomplete) {
 		'3. Bedakan dengan jelas antara fakta dari data dan perkiraanmu. Tulis "dari data"',
 		'   untuk yang tercatat dan "perkiraan" untuk yang tidak.',
 		'4. Ketika data tidak cukup untuk sesuatu, katakan tidak cukup. Jangan mengisi',
-		'   kekosongan dengan angka yang terlihat masuk akal.',
+		'   kekosongan dengan angka yang terlihat masukalik.',
 		'',
 		honesty,
 		'',
@@ -358,7 +485,16 @@ function systemPrompt(profileIncomplete) {
 		'- Kalau ada keputusan yang perlu diambil (misal beli sesuatu), berikan rekomendasi',
 		'  jelas dengan alasannya dari data, bukan daftar panjang tanpa kesimpulan.',
 		'- Tutup dengan langkah konkret yang bisa dikerjakan hari ini.',
-		'- Panjang secukupnya. Hindari mengulang isi konteks.'
+		'- Panjang secukupnya. Hindari mengulang isi konteks.',
+		'',
+		'Gaya bicara:',
+		...style,
+		'- Balas dalam bahasa yang sama dengan pertanyaan pengguna. Kalau pertanyaannya',
+		'  bahasa Indonesia, jawab bahasa Indonesia; kalau bahasa Inggris, jawab bahasa',
+		'  Inggris; kalau bahasa lain, jawab dalam bahasa itu juga.',
+		'- Jangan pernah menyisipkan kalimat dalam bahasa lain. Satu jawaban, satu bahasa.',
+		'- Currencies dan angka tetap apa adanya seperti di konteks, jangan dikonversi ke',
+		'  format bahasa lain.'
 	].join('\n');
 }
 
@@ -366,9 +502,18 @@ function systemPrompt(profileIncomplete) {
  * Builds the full message array: system prompt, the context block, a summary of
  * older turns, then the recent turns verbatim.
  */
-function buildMessages({ settings, profile, snapshot, history }) {
+function buildMessages({ settings, profile, snapshot, history, question }) {
+	// The tone is the user's setting. The language follows the question, so a
+	// user who writes in English gets English without touching anything, and the
+	// history sent along stays whatever language it was written in rather than
+	// being forced into one.
+	const language = detectLanguage(question);
+	const languageNote = language
+		? `\n\nBahasa jawaban untuk pertanyaan ini: ${LANGUAGE_NAMES[language]}.`
+		: '';
+
 	const messages = [
-		{ role: 'system', content: systemPrompt(settings.profileIncomplete) },
+		{ role: 'system', content: systemPrompt(settings.profileIncomplete, settings.persona) + languageNote },
 		{ role: 'system', content: buildContextBlock(profile, snapshot) }
 	];
 
@@ -401,5 +546,10 @@ module.exports = {
 	profileNarrative,
 	RECENT_MESSAGE_LIMIT,
 	endpointFor,
-	buildHeaders
+	buildHeaders,
+	detectLanguage,
+	personaFor,
+	STYLE_RULES,
+	LANGUAGE_NAMES,
+	DEFAULT_PERSONA
 };

@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS llm_settings (
 	api_key      TEXT,
 	temperature  REAL,
 	max_tokens   INTEGER,
-	system_prompt TEXT,
+	persona      TEXT,
 	updated_at   TEXT NOT NULL
 );
 
@@ -84,13 +84,16 @@ function emptyProfile() {
 	return profile;
 }
 
+const DEFAULT_PERSONA = 'profesional';
+
 function emptySettings() {
 	return {
 		api_url: null,
 		model: null,
 		has_key: false,
 		temperature: 0.7,
-		max_tokens: 1024
+		max_tokens: 1024,
+		persona: DEFAULT_PERSONA
 	};
 }
 
@@ -98,6 +101,25 @@ class ProfileStore {
 	constructor(raw) {
 		this.db = raw;
 		this.db.exec(SCHEMA);
+		this.#addMissingColumns();
+	}
+
+	/**
+	 * CREATE TABLE IF NOT EXISTS will not add a column to a table that already
+	 * exists, so a database created by an earlier version would fail every query
+	 * naming a new field. Checking the pragma is cheap and happens once at
+	 * startup, which is why the migration lives here rather than in a script the
+	 * user has to remember to run.
+	 */
+	#addMissingColumns() {
+		const columns = this.db
+			.prepare('PRAGMA table_info(llm_settings)')
+			.all()
+			.map((row) => row.name);
+
+		if (!columns.includes('persona')) {
+			this.db.exec('ALTER TABLE llm_settings ADD COLUMN persona TEXT');
+		}
 	}
 
 	/* -------------------------------------------------------------- profile */
@@ -182,7 +204,7 @@ class ProfileStore {
 		// secret out of this row entirely rather than relying on the return object
 		// to drop it, which is one edit away from leaking.
 		const row = this.db
-			.prepare('SELECT api_url, model, temperature, max_tokens, updated_at FROM llm_settings WHERE user_id = ?')
+			.prepare('SELECT api_url, model, temperature, max_tokens, persona, updated_at FROM llm_settings WHERE user_id = ?')
 			.get(userId);
 
 		if (!row) return { ...emptySettings(), updated_at: null };
@@ -199,6 +221,7 @@ class ProfileStore {
 			has_key: hasKey,
 			temperature: row.temperature === null ? 0.7 : Number(row.temperature),
 			max_tokens: row.max_tokens === null ? 1024 : Number(row.max_tokens),
+			persona: row.persona || DEFAULT_PERSONA,
 			updated_at: row.updated_at
 		};
 	}
@@ -206,7 +229,7 @@ class ProfileStore {
 	/** The full settings, including the key. Server-side use only. */
 	readSettingsWithKey(userId) {
 		const row = this.db
-			.prepare('SELECT api_url, model, api_key, temperature, max_tokens FROM llm_settings WHERE user_id = ?')
+			.prepare('SELECT api_url, model, api_key, temperature, max_tokens, persona FROM llm_settings WHERE user_id = ?')
 			.get(userId);
 
 		if (!row) return { ...emptySettings(), api_key: null };
@@ -215,7 +238,8 @@ class ProfileStore {
 			model: row.model,
 			api_key: row.api_key,
 			temperature: Number(row.temperature ?? 0.7),
-			max_tokens: Number(row.max_tokens ?? 1024)
+			max_tokens: Number(row.max_tokens ?? 1024),
+			persona: row.persona || DEFAULT_PERSONA
 		};
 	}
 
@@ -232,14 +256,15 @@ class ProfileStore {
 
 		this.db
 			.prepare(
-				`INSERT INTO llm_settings (user_id, api_url, model, api_key, temperature, max_tokens, updated_at)
-				VALUES (?, ?, ?, ?, ?, ?, ?)
+				`INSERT INTO llm_settings (user_id, api_url, model, api_key, temperature, max_tokens, persona, updated_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT(user_id) DO UPDATE SET
 					api_url = excluded.api_url,
 					model = excluded.model,
 					api_key = excluded.api_key,
 					temperature = excluded.temperature,
 					max_tokens = excluded.max_tokens,
+					persona = excluded.persona,
 					updated_at = excluded.updated_at`
 			)
 			.run(
@@ -249,6 +274,7 @@ class ProfileStore {
 				apiKey,
 				values.temperature ?? 0.7,
 				values.max_tokens ?? 1024,
+				values.persona ?? DEFAULT_PERSONA,
 				now
 			);
 
