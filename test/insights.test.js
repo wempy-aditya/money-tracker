@@ -33,7 +33,16 @@ async function addWallet(agent, balance) {
 	return res.body;
 }
 
-const MONTHS = ['2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10'];
+// The endpoint reads a rolling 6-month window anchored to "now", so the
+// fixture must be relative to the current month, not a fixed calendar.
+// Hardcoded 2026-05..2026-10 only passed while the run date was inside that
+// window; in November 2026 the window slides to 2026-06..2026-11.
+function monthOffset(offset) {
+	const date = new Date(new Date().getFullYear(), new Date().getMonth() - offset, 1);
+	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+const MONTHS = [5, 4, 3, 2, 1, 0].map(monthOffset);
 const INCOME = 10_000_000;
 /** Rising spending, the shape a lifestyle creep produces. */
 const EXPENSES = [2_000_000, 2_500_000, 3_000_000, 3_500_000, 4_000_000, 6_000_000];
@@ -64,7 +73,7 @@ async function seedKnownSeries(agent, walletId) {
 	}
 
 	return agent.post('/api/budgeting').send({
-		month: '2026-10',
+		month: MONTHS[MONTHS.length - 1],
 		categories: [
 			{ name: 'Tagihan', kind: 'needs', total: 500_000, subcategories: [{ name: 'Listrik', amount: 500_000, used: 0 }] },
 			{ name: 'Hiburan', kind: 'wants', total: 500_000, subcategories: [{ name: 'Jalan', amount: 500_000, used: 0 }] },
@@ -77,7 +86,7 @@ async function seedKnownSeries(agent, walletId) {
 test('a budget category keeps its needs/wants label', async () => {
 	const { agent } = await signUp('ins-kind');
 	const budget = await agent.post('/api/budgeting').send({
-		month: '2026-10',
+		month: MONTHS[MONTHS.length - 1],
 		categories: [
 			{ name: 'Tagihan', kind: 'needs', total: 100_000, subcategories: [{ name: 'Listrik', amount: 100_000 }] },
 			{ name: 'Hiburan', kind: 'wants', total: 100_000, subcategories: [{ name: 'Jalan', amount: 100_000 }] },
@@ -91,14 +100,14 @@ test('a budget category keeps its needs/wants label', async () => {
 
 	// And it survives a read, which is what the insights depend on.
 	const uid = (await agent.get('/api/auth/me')).body.user.userId;
-	const read = await agent.get(`/api/budgeting/${uid}/2026-10`);
+	const read = await agent.get(`/api/budgeting/${uid}/${MONTHS[MONTHS.length - 1]}`);
 	assert.equal(read.body.categories[0].kind, 'needs');
 });
 
 test('an unlabelled category stays unlabelled rather than being guessed', async () => {
 	const { agent } = await signUp('ins-unset');
 	const budget = await agent.post('/api/budgeting').send({
-		month: '2026-10',
+		month: MONTHS[MONTHS.length - 1],
 		categories: [{ name: 'Tagihan', total: 100_000, subcategories: [{ name: 'Listrik', amount: 100_000 }] }],
 	});
 	assert.equal(budget.status, 201);
@@ -115,7 +124,7 @@ test('an unlabelled category stays unlabelled rather than being guessed', async 
 test('updating a budget preserves and can change the label', async () => {
 	const { agent } = await signUp('ins-kind-edit');
 	const created = await agent.post('/api/budgeting').send({
-		month: '2026-10',
+		month: MONTHS[MONTHS.length - 1],
 		categories: [{ name: 'Tagihan', kind: 'needs', total: 100, subcategories: [{ name: 'L', amount: 100 }] }],
 	});
 
@@ -125,7 +134,7 @@ test('updating a budget preserves and can change the label', async () => {
 	assert.equal(flipped.status, 200);
 
 	const uid = (await agent.get('/api/auth/me')).body.user.userId;
-	const read = await agent.get(`/api/budgeting/${uid}/2026-10`);
+	const read = await agent.get(`/api/budgeting/${uid}/${MONTHS[MONTHS.length - 1]}`);
 	assert.equal(read.body.categories[0].kind, 'wants');
 });
 
@@ -141,8 +150,8 @@ test('Engel ratio and the needs/wants split match hand calculations', async () =
 
 	const series = res.body.engel.series;
 	assert.equal(series.length, 6);
-	assert.equal(series[0].month, '2026-05');
-	assert.equal(series[series.length - 1].month, '2026-10');
+	assert.equal(series[0].month, MONTHS[0]);
+	assert.equal(series[series.length - 1].month, MONTHS[MONTHS.length - 1]);
 
 	// 2.000.000 / 10.000.000 = 20%
 	assert.equal(series[0].ratio, 20);
@@ -177,10 +186,10 @@ test('Engel reports its own limits instead of scoring thin data', async () => {
 
 	// One month only: below the three-month minimum.
 	await agent.post('/api/transactions').send({
-		date: '2026-10-10', amount: 1_000_000, type: 'income', walletId: wallet.id,
+		date: `${MONTHS[MONTHS.length - 1]}-10`, amount: 1_000_000, type: 'income', walletId: wallet.id,
 	});
 	await agent.post('/api/transactions').send({
-		date: '2026-10-12', amount: 500_000, type: 'expense', category: 'Tagihan', walletId: wallet.id,
+		date: `${MONTHS[MONTHS.length - 1]}-12`, amount: 500_000, type: 'expense', category: 'Tagihan', walletId: wallet.id,
 	});
 
 	const res = await agent.get('/api/insights');
@@ -207,7 +216,7 @@ test('Engel marks spending it cannot classify instead of guessing', async () => 
 	assert.equal(body.engel.coverage.percent < 100, true, 'coverage must fall below 100%');
 	assert.ok(body.engel.coverage.unmarkedTotal > 0);
 
-	const october = body.engel.series.find((row) => row.month === '2026-10');
+	const october = body.engel.series.find((row) => row.month === MONTHS[MONTHS.length - 1]);
 	assert.equal(october.unmarked, 1_000_000);
 	// The gross ratio still counts every rupiah.
 	assert.equal(october.ratio, 70, '6jt + 1jt over 10jt income');

@@ -721,18 +721,22 @@
 	 * and choosing a destination lets the navigation happen.
 	 */
 	function wireNavGroup() {
-		var button = document.querySelector('[data-nav-group-toggle]');
+		var buttons = document.querySelectorAll('[data-nav-group-toggle]');
 		var menu = document.querySelector('[data-nav-group-menu]');
-		if (!button || !menu) return;
+		if (!buttons.length || !menu) return;
 
 		function setOpen(open) {
 			menu.hidden = !open;
-			button.setAttribute('aria-expanded', open ? 'true' : 'false');
+			buttons.forEach(function (b) {
+				b.setAttribute('aria-expanded', open ? 'true' : 'false');
+			});
 		}
 
-		button.addEventListener('click', function (event) {
-			event.stopPropagation();
-			setOpen(menu.hidden);
+		buttons.forEach(function (button) {
+			button.addEventListener('click', function (event) {
+				event.stopPropagation();
+				setOpen(menu.hidden);
+			});
 		});
 
 		// A click anywhere else dismisses it. Captured, because a click that lands
@@ -746,7 +750,7 @@
 				setOpen(false);
 				// Focus goes back to the button, otherwise it drops to the top of
 				// the document and keyboard users lose their place entirely.
-				button.focus();
+				buttons[0].focus();
 			}
 		});
 
@@ -778,7 +782,7 @@
 		var path = window.location.pathname;
 		var activeInsideMenu = false;
 
-		document.querySelectorAll('.nav__link[href]').forEach(function (link) {
+		document.querySelectorAll('.nav__link[href], .bottom-nav__link[href]').forEach(function (link) {
 			if (link.getAttribute('href') === path) {
 				link.setAttribute('aria-current', 'page');
 				if (link.closest('[data-nav-group-menu]')) activeInsideMenu = true;
@@ -789,11 +793,10 @@
 		// enough on its own, because the menu is closed and the link is not
 		// visible, so the button that opens it gets the indication as well.
 		if (activeInsideMenu) {
-			var button = document.querySelector('[data-nav-group-toggle]');
-			if (button) {
+			document.querySelectorAll('[data-nav-group-toggle]').forEach(function (button) {
 				button.setAttribute('aria-current', 'true');
 				button.classList.add('nav__link--contains-current');
-			}
+			});
 		}
 	}
 

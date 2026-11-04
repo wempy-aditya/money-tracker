@@ -362,6 +362,15 @@ A page reached from inside the menu still marks the menu button as current.
 Marking only the hidden link would leave the bar showing no indication at all
 while you are on the settings page.
 
+Below 768px the bar collapses into a fixed bottom navigation with the same
+destinations: Dashboard, Transactions, Budget, Assistant, and the Menu button.
+It is icon plus label, built from the same inline-SVG set as the wallet icons
+(no icon font, no CDN), and the page gets bottom padding plus
+`env(safe-area-inset-bottom)` so the bar never covers content or a home
+indicator. Hiding the top link list outright would leave the overflow menu
+anchored to a 0x0 box, so on a phone the list is moved off-screen instead and
+the menu opens as a fixed sheet above the bottom bar.
+
 ## Sorting and wallet types
 
 Every list page can be reordered without a round trip:

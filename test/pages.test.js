@@ -309,6 +309,40 @@ test('the nav closes its menu on Escape and on an outside click', () => {
 	assert.match(js, /menu\.contains\(event\.target\)/);
 });
 
+
+test('mobile bottom nav mirrors the top bar destinations', () => {
+	const EXPECTED = ['home', 'transactions', 'budget', 'chat'];
+	for (const page of PAGES) {
+		if (PUBLIC_PAGES.has(page)) continue;
+		const html = readPage(page);
+		const start = html.indexOf('<nav class="bottom-nav"');
+		assert.ok(start >= 0, `${page} has no bottom nav`);
+		// Bound the slice to the bottom nav itself: the rest of the page may
+		// contain other links (e.g. a settings shortcut) that are not nav.
+		const bottom = html.slice(start, html.indexOf('</nav>', start) + 6);
+		assert.ok(bottom.includes('bottom-nav__inner'), `${page} has no bottom nav`);
+		const targets = [...bottom.matchAll(/class="bottom-nav__link"[^>]*href="\/([\w-]+)"/g)].map((m) => m[1]);
+		assert.deepEqual(targets, EXPECTED, `${page} bottom nav destinations drift`);
+		assert.match(bottom, /data-nav-group-toggle/);
+		assert.match(bottom, /aria-expanded="false"/);
+		assert.match(bottom, /aria-haspopup="true"/);
+	}
+});
+
+test('bottom nav is styled only on small screens and top links yield there', () => {
+	const css = fs.readFileSync(path.join(VIEW_DIR, 'assets', 'css', 'app.css'), 'utf8');
+	assert.match(css, /\.bottom-nav\s*\{\s*display:\s*none;/);
+	assert.match(css, /@media \(max-width: 767px\) \{[\s\S]*?\.nav__links \{\s*position: absolute;\s*left: -9999px;/, 'top links must leave the layout on mobile');
+	assert.match(css, /@media \(max-width: 767px\) \{[\s\S]*?\.bottom-nav \{\s*display: block;/);
+	assert.match(css, /padding-bottom: calc\(96px \+ env\(safe-area-inset-bottom/);
+});
+
+test('bottom nav active state is wired in the script', () => {
+	const js = fs.readFileSync(path.join(VIEW_DIR, 'assets', 'js', 'app.js'), 'utf8');
+	assert.match(js, /bottom-nav__link\[href\]/);
+	assert.match(js, /querySelectorAll\('\[data-nav-group-toggle\]'\)/);
+});
+
 test('a page behind the overflow menu is still marked as current', () => {
 	const js = fs.readFileSync(path.join(VIEW_DIR, 'assets', 'js', 'app.js'), 'utf8');
 
