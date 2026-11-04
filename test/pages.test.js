@@ -311,7 +311,7 @@ test('the nav closes its menu on Escape and on an outside click', () => {
 
 
 test('mobile bottom nav mirrors the top bar destinations', () => {
-	const EXPECTED = ['home', 'transactions', 'budget', 'chat'];
+	const EXPECTED = ['home', 'transactions', 'budget', 'wallet'];
 	for (const page of PAGES) {
 		if (PUBLIC_PAGES.has(page)) continue;
 		const html = readPage(page);
@@ -326,12 +326,47 @@ test('mobile bottom nav mirrors the top bar destinations', () => {
 		assert.match(bottom, /data-nav-group-toggle/);
 		assert.match(bottom, /aria-expanded="false"/);
 		assert.match(bottom, /aria-haspopup="true"/);
+
+		// The assistant lives in the overflow menu and as a floating button on
+		// phones, so it must not appear twice in the bottom bar itself.
+		assert.equal(targets.includes('chat'), false, `${page} bottom nav still carries Asisten as a bar item`);
+	}
+});
+
+test('the top bar carries the four priority destinations and demotes Asisten to the menu', () => {
+	for (const page of PAGES) {
+		if (PUBLIC_PAGES.has(page)) continue;
+		const html = readPage(page);
+		const topStart = html.indexOf('<nav class="nav">');
+		const topEnd = html.indexOf('</nav>', topStart);
+		const top = html.slice(topStart, topEnd);
+		const linksStart = top.indexOf('<div class="nav__links">');
+		const groupStart = top.indexOf('<div class="nav__group"');
+		const direct = top.slice(linksStart, groupStart);
+		const directTargets = [...direct.matchAll(/class="nav__link"[^>]*href="\/([\w-]+)"/g)].map((m) => m[1]);
+		assert.deepEqual(directTargets, ['home', 'transactions', 'budget', 'wallet'], `${page} top bar priority destinations drift`);
+		const menuStart = top.indexOf('data-nav-group-menu');
+		const menu = top.slice(menuStart, top.indexOf('</div>', menuStart + 200));
+		assert.match(menu, /href="\/chat">Asisten</, `${page} Asisten is not inside the overflow menu`);
+	}
+});
+
+test('every authenticated page offers the assistant as a floating button', () => {
+	for (const page of PAGES) {
+		if (PUBLIC_PAGES.has(page)) continue;
+		const html = readPage(page);
+		assert.match(html, /class="fab"[^>]*href="\/chat"/, `${page} is missing the assistant FAB`);
+		assert.match(html, /aria-label="Buka Asisten"/, `${page} FAB has no accessible label`);
+		const css = fs.readFileSync(path.join(VIEW_DIR, 'assets', 'css', 'app.css'), 'utf8');
+		assert.match(css, /\.fab \{\s*display: none;/, 'FAB must stay hidden on desktop');
+		assert.match(css, /@media \(max-width: 767px\) \{[\s\S]*?\.fab \{\s*display: flex;/, 'FAB must appear on phones');
+		assert.match(css, /\.fab \[aria-current='page'\]|\.fab\[aria-current='page'\]/, 'FAB needs a current-page state');
 	}
 });
 
 test('bottom nav is styled only on small screens and top links yield there', () => {
 	const css = fs.readFileSync(path.join(VIEW_DIR, 'assets', 'css', 'app.css'), 'utf8');
-	assert.match(css, /\.bottom-nav\s*\{\s*display:\s*none;/);
+	assert.match(css, /\.bottom-nav,\s*\n\.fab \{\s*display: none;/, 'bottom bar and FAB must stay hidden by default');
 	assert.match(css, /@media \(max-width: 767px\) \{[\s\S]*?\.nav__links \{\s*position: absolute;\s*left: -9999px;/, 'top links must leave the layout on mobile');
 	assert.match(css, /@media \(max-width: 767px\) \{[\s\S]*?\.bottom-nav \{\s*display: block;/);
 	assert.match(css, /padding-bottom: calc\(96px \+ env\(safe-area-inset-bottom/);

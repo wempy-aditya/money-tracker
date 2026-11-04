@@ -782,7 +782,7 @@
 		var path = window.location.pathname;
 		var activeInsideMenu = false;
 
-		document.querySelectorAll('.nav__link[href], .bottom-nav__link[href]').forEach(function (link) {
+		document.querySelectorAll('.nav__link[href], .bottom-nav__link[href], .fab[href]').forEach(function (link) {
 			if (link.getAttribute('href') === path) {
 				link.setAttribute('aria-current', 'page');
 				if (link.closest('[data-nav-group-menu]')) activeInsideMenu = true;

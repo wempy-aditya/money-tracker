@@ -1907,7 +1907,11 @@ blockquote > :last-child { margin-bottom: 0; }
 
 /* ------------------------------------------------------------ bottom nav */
 
-.bottom-nav {
+/* The bottom bar and the floating assistant button are a phone-only shape. On
+   desktop the destinations live in the top bar; duplicating them as a second
+   fixed layer would put two controls under the thumb for no reason. */
+.bottom-nav,
+.fab {
 	display: none;
 }
 
@@ -1988,16 +1992,12 @@ blockquote > :last-child { margin-bottom: 0; }
 		cursor: pointer;
 	}
 
-	/* The overflow menu is anchored to the group inside the top bar,
-	   which is off-screen on a phone. On mobile the sheet anchors to
-	   the bottom bar itself and opens upward, so it sits above the
-	   bar instead of below a bar that is not there. */
-	/* The menu is a child of .nav__group inside the top bar, whose
-	   containing block is that group. The sheet must anchor to the
-	   bottom bar, so the offsets are pinned to viewport coordinates
-	   instead of the hidden group's box. The bar's height is derived
-	   from its own padding and link height, so bottom stays a few
-	   pixels above it rather than overlapping by the difference. */
+	/* The overflow menu is a child of .nav__group inside the top bar, whose
+	   containing block is that group. The sheet must anchor to the bottom bar,
+	   so the offsets are pinned to viewport coordinates instead of the hidden
+	   group's box. The bar's height is derived from its own padding and link
+	   height, so bottom stays a few pixels above it rather than overlapping by
+	   the difference. */
 	.nav__group__menu {
 		position: fixed;
 		left: 50%;
@@ -2018,6 +2018,65 @@ blockquote > :last-child { margin-bottom: 0; }
 		width: 22px;
 		height: 22px;
 		flex: none;
+	}
+
+	/* Floating action button for the assistant: it sits above the bottom bar
+	   so the primary destinations never move, but the advisor stays one thumb
+	   press away even though it is no longer in the bar. */
+	.fab {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		position: fixed;
+		right: 16px;
+		bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+		z-index: 45;
+		min-height: 48px;
+		padding: 10px 16px 10px 13px;
+		border-radius: 999px;
+		background: var(--accent-surface);
+		color: #ffffff;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1;
+		text-decoration: none;
+		box-shadow: var(--shadow-lg);
+	}
+
+	.fab:hover {
+		background: var(--accent-surface-hover);
+		color: #ffffff;
+		text-decoration: none;
+	}
+
+	.fab:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.fab__icon {
+		width: 22px;
+		height: 22px;
+		flex: none;
+	}
+
+	.fab__label {
+		white-space: nowrap;
+	}
+
+	/* On the assistant page itself a link to itself is a dead button, so the
+	   floating shortcut yields to the "Lainnya" button state there. */
+	.fab[aria-current='page'] {
+		background: var(--accent-soft);
+		color: var(--accent-text);
+		box-shadow: var(--shadow-md);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.fab,
+	.bottom-nav__link {
+		transition: none;
 	}
 }
 

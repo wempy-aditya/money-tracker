@@ -348,7 +348,7 @@ document, and showing someone's words back as markup is a surprise.
 ## Navigation
 
 Four destinations across the bar and the rest behind one menu: Dashboard,
-Transactions, Budget, Assistant, then Menu holding Wallets, Goals, Rules,
+Transactions, Budget, Wallets, then Menu holding Assistant, Goals, Rules,
 Insights, Guide, Profile and Settings.
 
 The hamburger is gone. The previous bar hid its links entirely below 900px and
@@ -363,13 +363,19 @@ Marking only the hidden link would leave the bar showing no indication at all
 while you are on the settings page.
 
 Below 768px the bar collapses into a fixed bottom navigation with the same
-destinations: Dashboard, Transactions, Budget, Assistant, and the Menu button.
+destinations: Dashboard, Transactions, Budget, Wallets, and the Menu button.
 It is icon plus label, built from the same inline-SVG set as the wallet icons
 (no icon font, no CDN), and the page gets bottom padding plus
 `env(safe-area-inset-bottom)` so the bar never covers content or a home
 indicator. Hiding the top link list outright would leave the overflow menu
 anchored to a 0x0 box, so on a phone the list is moved off-screen instead and
 the menu opens as a fixed sheet above the bottom bar.
+
+The assistant is demoted to the overflow menu, but on a phone it also appears
+as a floating action button anchored above the bottom bar, so it stays one thumb
+press away without moving the four primary destinations. On the assistant page
+itself the FAB takes the accent-soft "current" state instead of looking like
+a dead link.
 
 ## Sorting and wallet types
 
