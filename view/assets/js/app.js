@@ -725,7 +725,11 @@
 		var menu = document.querySelector('[data-nav-group-menu]');
 		if (!buttons.length || !menu) return;
 
+		var isOpen = false;
+		var lastToggleAt = 0;
+
 		function setOpen(open) {
+			isOpen = open;
 			menu.hidden = !open;
 			buttons.forEach(function (b) {
 				b.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -735,7 +739,12 @@
 		buttons.forEach(function (button) {
 			button.addEventListener('click', function (event) {
 				event.stopPropagation();
-				setOpen(menu.hidden);
+				var now = Date.now();
+				// Tap HP bisa memicu dua click berurutan (touch + synthesized).
+				// Guard 450ms mencegah satu tap membuka lalu menutup menu.
+				if (now - lastToggleAt < 450) return;
+				lastToggleAt = now;
+				setOpen(!isOpen);
 			});
 		});
 
