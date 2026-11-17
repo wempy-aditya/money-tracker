@@ -1999,14 +1999,71 @@ blockquote > :last-child { margin-bottom: 0; }
 	   height, so bottom stays a few pixels above it rather than overlapping by
 	   the difference. */
 	.nav__group__menu {
+		position: absolute;
+		left: -9999px;
+		top: 0;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+	}
+
+	.bottom-nav__sheet {
 		position: fixed;
+		inset: 0;
+		z-index: 56;
+	}
+
+	.bottom-nav__sheet[hidden] { display: none; }
+
+	.bottom-nav__backdrop {
+		position: absolute;
+		inset: 0;
+		background: rgba(8, 12, 20, 0.24);
+	}
+
+	.bottom-nav__panel {
+		position: absolute;
 		left: 50%;
 		right: auto;
-		top: auto;
-		bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+		bottom: calc(76px + env(safe-area-inset-bottom, 0px));
 		transform: translateX(-50%);
 		width: min(320px, calc(100vw - 24px));
-		z-index: 55;
+		max-height: min(70vh, 420px);
+		display: flex;
+		flex-direction: column;
+		scrollbar-width: thin;
+		overflow: auto;
+		background: var(--surface-raised);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+		box-shadow: var(--shadow-lg);
+		padding: 6px;
+		gap: 2px;
+	}
+
+	.bottom-nav__panel .nav__link {
+		display: flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 10px 12px;
+		border-radius: var(--radius-control);
+		color: var(--text-primary);
+		font-size: 14px;
+		font-weight: 500;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	.bottom-nav__panel .nav__link:hover {
+		background: var(--surface-hover);
+	}
+
+	.bottom-nav__panel .nav__link[aria-current='page'] {
+		background: var(--accent-soft);
+		color: var(--accent-text);
+		font-weight: 650;
 	}
 
 	.bottom-nav__button[aria-expanded='true'] {

@@ -168,6 +168,40 @@ test('the transactions page has a working way to add a transaction', () => {
 	assert.match(html, /id="transactionModal"/, 'the transaction modal itself is missing');
 });
 
+test('generated markup closes every inline handler attribute', () => {
+	// Regression guard: the transaction delete button shipped with
+	// onclick="askDelete(x) and no closing quote, so the rest of the button was
+	// swallowed into the attribute. The row still rendered, the button still
+	// looked right, and tapping it did nothing because the handler string was a
+	// syntax error. Every generated `onclick="fn(` must end with a quote.
+	const offenders = [];
+
+	for (const page of PAGES) {
+		const js = allScriptsFor(readPage(page));
+
+		// Concatenated attribute fragments, e.g.
+		//   'onclick="askDelete(' + id + ')"'  ->  the tail must carry a quote.
+		for (const m of js.matchAll(/onclick=\\?["']\s*(\w+)\s*\(\s*[\w.$]+/g)) {
+			const start = m.index;
+			const window = js.slice(start, start + 240);
+			const callOpen = window.indexOf('(');
+			if (callOpen === -1) continue;
+
+			// The attribute closes when a quote appears after the opening paren
+			// and before the enclosing string ends. A fragment ending at ')' with
+			// no following quote leaks the attribute.
+			const rest = window.slice(callOpen + 1);
+			const closesBeforeStringEnd = /\)\\?["']/.test(rest);
+			const isSingleQuotedTail = /\)'/.test(rest.slice(0, 120));
+			if (!closesBeforeStringEnd && isSingleQuotedTail) {
+				offenders.push(`${page}: inline handler ${m[1]}() is missing its closing attribute quote`);
+			}
+		}
+	}
+
+	assert.deepEqual(offenders, []);
+});
+
 test('pages do not hardcode an origin or a user id', () => {
 	// http://localhost:5000 broke every page when opened from a phone.
 	const offenders = [];
@@ -330,6 +364,21 @@ test('mobile bottom nav mirrors the top bar destinations', () => {
 		// The assistant lives in the overflow menu and as a floating button on
 		// phones, so it must not appear twice in the bottom bar itself.
 		assert.equal(targets.includes('chat'), false, `${page} bottom nav still carries Asisten as a bar item`);
+
+		// The mobile sheet must be its own visible layer. Reusing the desktop
+		// overflow menu would be invisible on phones because that menu is
+		// deliberately moved off-screen once the top links collapse.
+		assert.match(bottom, /class="bottom-nav__sheet" data-bottom-sheet-menu hidden/, `${page} mobile sheet is missing`);
+		assert.match(bottom, /class="bottom-nav__backdrop" data-bottom-sheet-backdrop/, `${page} mobile sheet has no backdrop`);
+		assert.match(bottom, /class="bottom-nav__panel" role="menu" aria-label="Lainnya"/, `${page} mobile sheet has no labelled panel`);
+		// Slice the panel body first: one lazy `matchAll` over the whole nav
+		// anchored on the panel class name only ever matched the first link,
+		// so six of the seven destinations went unchecked.
+		const panelStart = bottom.indexOf('class="bottom-nav__panel"');
+		assert.ok(panelStart >= 0, `${page} mobile sheet has no panel`);
+		const panel = bottom.slice(panelStart, bottom.indexOf('</div>', panelStart));
+		const sheetTargets = [...panel.matchAll(/href="\/([\w-]+)"/g)].map((m) => m[1]);
+		assert.deepEqual(sheetTargets, ['chat', 'goals', 'recurring', 'insights', 'guide', 'profile', 'settings'], `${page} mobile sheet destinations drift`);
 	}
 });
 

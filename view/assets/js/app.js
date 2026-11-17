@@ -726,11 +726,13 @@
 		if (!buttons.length || !menu) return;
 
 		var isOpen = false;
-		var lastToggleAt = 0;
+		var sheet = document.querySelector('[data-bottom-sheet-menu]');
+		var backdrop = document.querySelector('[data-bottom-sheet-backdrop]');
 
 		function setOpen(open) {
 			isOpen = open;
 			menu.hidden = !open;
+			if (sheet) sheet.hidden = !open;
 			buttons.forEach(function (b) {
 				b.setAttribute('aria-expanded', open ? 'true' : 'false');
 			});
@@ -739,19 +741,18 @@
 		buttons.forEach(function (button) {
 			button.addEventListener('click', function (event) {
 				event.stopPropagation();
-				var now = Date.now();
-				// Tap HP bisa memicu dua click berurutan (touch + synthesized).
-				// Guard 450ms mencegah satu tap membuka lalu menutup menu.
-				if (now - lastToggleAt < 450) return;
-				lastToggleAt = now;
 				setOpen(!isOpen);
 			});
 		});
 
+		if (backdrop) {
+			backdrop.addEventListener('click', function () { setOpen(false); });
+		}
+
 		// A click anywhere else dismisses it. Captured, because a click that lands
 		// on another control would otherwise leave the menu open behind it.
 		document.addEventListener('click', function (event) {
-			if (!menu.hidden && !menu.contains(event.target)) setOpen(false);
+			if (!menu.hidden && !menu.contains(event.target) && !(sheet && sheet.contains(event.target))) setOpen(false);
 		});
 
 		document.addEventListener('keydown', function (event) {

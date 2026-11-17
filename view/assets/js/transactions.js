@@ -127,7 +127,7 @@
 					JSON.stringify(transaction.id).replace(/"/g, '&quot;') +
 					')" aria-label="Edit transaksi" title="Edit">&#9998;</button>' +
 					'<button class="icon-btn icon-btn--danger" type="button" onclick="askDelete(' +
-					JSON.stringify(transaction.id).replace(/"/g, '&quot;') + ')' +
+					JSON.stringify(transaction.id).replace(/"/g, '&quot;') + ')"' +
 					' aria-label="Hapus transaksi" title="Hapus">&#128465;</button>' +
 					'</div></td></tr>';
 			});

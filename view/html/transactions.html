@@ -117,7 +117,20 @@
             <button class="bottom-nav__link bottom-nav__button" type="button" data-nav-group-toggle aria-expanded="false" aria-haspopup="true"><svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg><span>Lainnya</span></button>
 
         </div>
-    </nav>
+
+    <div class="bottom-nav__sheet" data-bottom-sheet-menu hidden>
+        <div class="bottom-nav__backdrop" data-bottom-sheet-backdrop></div>
+        <div class="bottom-nav__panel" role="menu" aria-label="Lainnya">
+                        <a class="nav__link" href="/chat">Asisten</a>
+                        <a class="nav__link" href="/goals">Target</a>
+                        <a class="nav__link" href="/recurring">Aturan</a>
+                        <a class="nav__link" href="/insights">Insights</a>
+                        <a class="nav__link" href="/guide">Panduan</a>
+                        <a class="nav__link" href="/profile">Profil</a>
+                        <a class="nav__link" href="/settings">Pengaturan</a>
+        </div>
+    </div>
+</nav>
 
     <main class="page">
         <div class="page-head">
